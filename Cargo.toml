@@ -1,0 +1,16 @@
+[package]
+name = "task-scheduler"
+version = "0.1.0"
+authors = ["Jones Magloire @Joxit"]
+description = "Command line task scheduler."
+edition = "2018"
+license = "MIT"
+repository = "https://github.com/Joxit/task-scheduler"
+homepage = "https://github.com/Joxit/task-scheduler"
+documentation = "https://docs.rs/task-scheduler/"
+readme = "README.md"
+keywords = ["cli"]
+categories = ["command-line-utilities"]
+
+[dependencies]
+structopt = "^0.3"
