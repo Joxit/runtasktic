@@ -1,0 +1,18 @@
+tasks:
+  a:
+    commands:
+      - echo a
+      - sleep 0.5
+  b:
+    commands:
+      - echo b
+      - sleep 0.5
+    depends_on: [ a ]
+  c:
+    commands:
+      - echo c
+    depends_on: [ a ]
+  d:
+    commands:
+      - echo d
+    depends_on: [ b, c ]

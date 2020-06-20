@@ -2,6 +2,7 @@ use crate::commands::Command;
 use structopt::StructOpt;
 
 mod commands;
+mod config;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "task-scheduler", author, about)]
