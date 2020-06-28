@@ -1,44 +1,22 @@
+use crate::config::yaml_trait::YamlTasksScheduler;
 use crate::config::Task;
 use std::collections::HashMap;
 use yaml_rust::{Yaml, YamlLoader};
 
-pub fn read_tasks(s: &str) -> HashMap<String, Task> {
+pub fn read_tasks(s: &str) -> Result<HashMap<String, Task>, String> {
   let yaml = YamlLoader::load_from_str(s).unwrap();
   let mut result = HashMap::new();
 
   if yaml.len() == 0 {
-    return result;
+    return Ok(result);
   }
 
-  println!("{:?}", yaml);
-  let tasks = yaml[0]
-    .as_hash()
-    .unwrap()
-    .get(&Yaml::String("tasks".to_string()))
-    .unwrap()
-    .as_hash()
-    .unwrap();
+  let tasks = yaml[0].get_tasks()?;
 
   for (id, task) in tasks.iter() {
     let id = id.as_str().unwrap();
-    let default = &linked_hash_map::LinkedHashMap::new();
-    let task = task.as_hash().unwrap_or(default);
-    let commands = task
-      .get(&Yaml::String("commands".to_string()))
-      .unwrap_or(&Yaml::Array(vec![]))
-      .as_vec()
-      .unwrap()
-      .iter()
-      .map(|c| c.as_str().unwrap().to_string())
-      .collect();
-    let depends_on = task
-      .get(&Yaml::String("depends_on".to_string()))
-      .unwrap_or(&Yaml::Array(vec![]))
-      .as_vec()
-      .unwrap()
-      .iter()
-      .map(|c| c.as_str().unwrap().to_string())
-      .collect();
+    let commands = task.get_commands();
+    let depends_on = task.get_depends_on();
 
     result.insert(
       id.to_string(),
@@ -46,7 +24,7 @@ pub fn read_tasks(s: &str) -> HashMap<String, Task> {
     );
   }
 
-  result
+  Ok(result)
 }
 
 #[cfg(test)]
@@ -55,7 +33,7 @@ mod test {
 
   #[test]
   pub fn read_tasks_empty_yaml() {
-    assert_eq!(read_tasks(""), HashMap::new());
+    assert_eq!(read_tasks(""), Ok(HashMap::new()));
   }
 
   #[test]
@@ -69,7 +47,7 @@ mod test {
       String::from("a"),
       Task::new(String::from("a"), vec![], vec![]),
     );
-    assert_eq!(read_tasks(yaml), expected);
+    assert_eq!(read_tasks(yaml), Ok(expected));
   }
 
   #[test]
@@ -85,7 +63,7 @@ mod test {
       String::from("a"),
       Task::new(String::from("a"), vec![String::from("echo OK")], vec![]),
     );
-    assert_eq!(read_tasks(yaml), expected);
+    assert_eq!(read_tasks(yaml), Ok(expected));
   }
 
   #[test]
@@ -101,8 +79,12 @@ mod test {
     let mut expected: HashMap<String, Task> = HashMap::new();
     expected.insert(
       String::from("a"),
-      Task::new(String::from("a"), vec![String::from("echo OK")], vec![String::from("b")]),
+      Task::new(
+        String::from("a"),
+        vec![String::from("echo OK")],
+        vec![String::from("b")],
+      ),
     );
-    assert_eq!(read_tasks(yaml), expected);
+    assert_eq!(read_tasks(yaml), Ok(expected));
   }
 }

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 mod reader;
 mod task;
+mod yaml_trait;
 
 pub struct Config {
   tasks: HashMap<String, Task>,
