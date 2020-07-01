@@ -1,7 +1,7 @@
 use crate::config::yaml_trait::YamlTasksScheduler;
 use crate::config::Task;
 use std::collections::HashMap;
-use yaml_rust::{Yaml, YamlLoader};
+use yaml_rust::YamlLoader;
 
 pub fn read_tasks(s: &str) -> Result<HashMap<String, Task>, String> {
   let yaml = YamlLoader::load_from_str(s).unwrap();

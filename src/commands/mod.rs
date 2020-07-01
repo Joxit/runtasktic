@@ -6,7 +6,7 @@ mod run;
 #[derive(Debug, StructOpt)]
 pub enum Command {
   /// Run tasks.
-  #[structopt(name = "build")]
+  #[structopt(name = "run")]
   Run(Run),
 }
 

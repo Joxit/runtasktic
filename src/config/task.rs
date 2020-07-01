@@ -1,8 +1,8 @@
 #[derive(Debug, PartialEq)]
 pub struct Task {
-  id: String,
-  commands: Vec<String>,
-  depends_on: Vec<String>,
+  pub id: String,
+  pub commands: Vec<String>,
+  pub depends_on: Vec<String>,
 }
 
 impl Task {
