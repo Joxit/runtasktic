@@ -1,8 +1,11 @@
+use rustfst::StateId;
+
 #[derive(Debug, PartialEq)]
 pub struct Task {
   pub id: String,
   pub commands: Vec<String>,
   pub depends_on: Vec<String>,
+  pub state: StateId,
 }
 
 impl Task {
@@ -11,6 +14,7 @@ impl Task {
       id: id,
       commands: commands,
       depends_on: depends_on,
+      state: 0,
     }
   }
 }
