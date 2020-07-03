@@ -13,25 +13,38 @@ pub struct TaskFstState {
 }
 
 impl TaskFst {
-  fn new() -> TaskFst {
+  pub fn new() -> TaskFst {
     TaskFst {
       states: vec![],
       start_states: vec![],
     }
   }
 
-  fn add_state(&mut self, label: String) {
+  pub fn add_state(&mut self, label: String) -> usize {
     self.states.push(TaskFstState {
       label: label,
       id: self.states.len(),
       next: vec![],
       prev: vec![],
-    })
+    });
+    self.states.len() - 1
   }
 
-  fn add_edge(&mut self, from: usize, to: usize) {
+  pub fn add_start_state(&mut self, id: usize) {
+    self.start_states.push(id)
+  }
+
+  pub fn add_arc(&mut self, from: usize, to: usize) {
     self.states[from].next.push(to);
     self.states[to].prev.push(from);
+  }
+
+  pub fn get_state_from_label(&self, label: String) -> &TaskFstState {
+    self.states.iter().find(|s| s.label == label).unwrap()
+  }
+
+  pub fn get_state_id_from_label(&self, label: String) -> usize {
+    self.states.iter().position(|s| s.label == label).unwrap()
   }
 }
 
@@ -51,11 +64,11 @@ mod test {
   }
 
   #[test]
-  pub fn read_tasks_empty_yaml() {
+  pub fn add_arc() {
     let mut fst = TaskFst::new();
     fst.add_state("a".to_string());
     fst.add_state("b".to_string());
-    fst.add_edge(0, 1);
+    fst.add_arc(0, 1);
 
     assert_eq!(
       fst,
@@ -77,5 +90,33 @@ mod test {
         start_states: vec![]
       }
     )
+  }
+
+  #[test]
+  pub fn get_state_from_label() {
+    let mut fst = TaskFst::new();
+    fst.add_state("a".to_string());
+    fst.add_state("b".to_string());
+    fst.add_arc(0, 1);
+
+    assert_eq!(
+      fst.get_state_from_label("b".to_string()),
+      &TaskFstState {
+        label: "b".to_string(),
+        id: 1,
+        next: vec![],
+        prev: vec![0]
+      }
+    )
+  }
+
+  #[test]
+  pub fn get_state_id_from_label() {
+    let mut fst = TaskFst::new();
+    fst.add_state("a".to_string());
+    fst.add_state("b".to_string());
+    fst.add_arc(0, 1);
+
+    assert_eq!(fst.get_state_id_from_label("b".to_string()), 1)
   }
 }
