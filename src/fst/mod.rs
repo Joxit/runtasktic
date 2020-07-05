@@ -1,3 +1,6 @@
+mod iter;
+use crate::fst::iter::*;
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct TaskFst {
   pub states: Vec<TaskFstState>,
@@ -45,6 +48,10 @@ impl TaskFst {
 
   pub fn get_state_id_from_label(&self, label: String) -> usize {
     self.states.iter().position(|s| s.label == label).unwrap()
+  }
+
+  pub fn iter(self) -> TaskIter {
+    TaskIter::new(self)
   }
 }
 

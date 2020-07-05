@@ -29,8 +29,7 @@ impl Run {
 
     let mut graph = TaskFst::new();
     for task in tasks.values_mut() {
-      let state = graph.add_state(task.id.to_string());
-      task.state = state;
+      task.state = graph.add_state(task.id.to_string());
     }
 
     for task in tasks.values() {
@@ -38,8 +37,7 @@ impl Run {
         graph.add_start_state(task.state);
       } else {
         for prev in task.depends_on.iter() {
-          graph
-            .add_arc(tasks.get(prev).unwrap().state, task.state);
+          graph.add_arc(tasks.get(prev).unwrap().state, task.state);
         }
       }
     }
