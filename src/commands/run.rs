@@ -42,21 +42,37 @@ impl Run {
       }
     }
 
+    let processes: &mut Vec<Option<std::process::Child>> = &mut vec![];
+    for _ in 0..graph.states.len() {
+      processes.push(None);
+    }
+
     let graph_iter = &mut graph.iter();
     loop {
       if let Some(task) = graph_iter.next() {
         let label = task.label.to_string();
-        for command in &tasks.get(&label).unwrap().commands {
-          let mut child = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(command)
-            .spawn()
-            .unwrap();
-          child.wait().unwrap();
-        }
-        graph_iter.mark_done(task.id);
-      } else {
+        let child = std::process::Command::new("sh")
+          .arg("-c")
+          .arg(tasks.get(&label).unwrap().commands.join(" && "))
+          .spawn()
+          .unwrap();
+        processes[task.id] = Some(child);
+      } else if graph_iter.is_done() {
         break;
+      } else {
+        let mut done = 0;
+        for id in 0..processes.len() {
+          if let Some(child) = processes[id].as_mut() {
+            if child.try_wait().unwrap().is_some() {
+              done = done + 1;
+              graph_iter.mark_done(id);
+              processes[id] = None;
+            }
+          }
+        }
+        if done == 0 {
+          std::thread::sleep(std::time::Duration::from_millis(100));
+        }
       }
     }
   }

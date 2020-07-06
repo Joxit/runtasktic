@@ -24,7 +24,7 @@ impl TaskIter {
     }
   }
 
-  pub fn is_done(self) -> bool {
+  pub fn is_done(&self) -> bool {
     self.states.iter().all(|state| *state == TaskStatus::Done)
   }
 
