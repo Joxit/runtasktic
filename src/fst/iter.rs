@@ -42,12 +42,8 @@ impl TaskIter {
       }
     }
   }
-}
 
-impl Iterator for TaskIter {
-  type Item = TaskFstState;
-
-  fn next(&mut self) -> Option<TaskFstState> {
+  pub fn next(&mut self) -> Option<TaskFstState> {
     if self.next.len() > 0 {
       let pos = self.next.remove(0);
       self.states[pos] = TaskStatus::InProgress;

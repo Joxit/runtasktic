@@ -41,5 +41,23 @@ impl Run {
         }
       }
     }
+
+    let graph_iter = &mut graph.iter();
+    loop {
+      if let Some(task) = graph_iter.next() {
+        let label = task.label.to_string();
+        for command in &tasks.get(&label).unwrap().commands {
+          let mut child = std::process::Command::new("sh")
+            .arg("-c")
+            .arg(command)
+            .spawn()
+            .unwrap();
+          child.wait().unwrap();
+        }
+        graph_iter.mark_done(task.id);
+      } else {
+        break;
+      }
+    }
   }
 }
