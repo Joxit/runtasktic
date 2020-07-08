@@ -17,8 +17,19 @@ impl Run {
       eprintln!("The config file {} does not exists", self.config.display());
       return;
     }
-    let yaml = fs::read_to_string(self.config.as_path()).unwrap();
-    let mut tasks = config::read_tasks(yaml.as_str()).unwrap();
+    if let Err(e) = self.run() {
+      eprintln!("{}", e);
+      std::process::exit(1);
+    }
+  }
+
+  fn run(&self) -> Result<(), String> {
+    let yaml = fs::read_to_string(self.config.as_path())
+      .map_err(|msg| format!("Can't read the config file: {}", msg))?;
+
+    let mut tasks = config::read_tasks(yaml.as_str())
+      .map_err(|msg| format!("Can't process the config file: {}", msg))?;
+
     let initial_states: Vec<String> = tasks
       .values()
       .filter(|task| task.depends_on.len() == 0)
@@ -37,14 +48,16 @@ impl Run {
         graph.add_start_state(task.state);
       } else {
         for prev in task.depends_on.iter() {
-          graph.add_arc(tasks.get(prev).unwrap().state, task.state);
+          let err_msg = format!("{} depends on {} but does not exists", task.id, prev);
+          let prev_state = tasks.get(prev).ok_or(err_msg)?.state;
+          graph.add_arc(prev_state, task.state);
         }
       }
     }
 
     if graph.is_cyclic() {
-      eprintln!("Can't execute your configuration. There is a deadlock in your tasks !");
-      std::process::exit(1);
+      let err_msg = "Can't execute your configuration. There is a deadlock in your tasks !";
+      return Err(err_msg.to_string());
     }
 
     let processes: &mut Vec<Option<std::process::Child>> = &mut vec![];
@@ -56,14 +69,15 @@ impl Run {
     loop {
       if let Some(task) = graph_iter.next() {
         let label = task.label.to_string();
+        let cmd_line = tasks.get(&label).unwrap().commands.join(" && ");
         let child = std::process::Command::new("sh")
           .arg("-c")
-          .arg(tasks.get(&label).unwrap().commands.join(" && "))
+          .arg(cmd_line.to_string())
           .spawn()
-          .unwrap();
+          .map_err(|msg| format!("Can't run command `{}`: {}", cmd_line, msg))?;
         processes[task.id] = Some(child);
       } else if graph_iter.is_done() {
-        break;
+        return Ok(());
       } else {
         let mut done = 0;
         for id in 0..processes.len() {

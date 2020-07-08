@@ -1,6 +1,5 @@
 mod iter;
 use crate::fst::iter::*;
-use std::collections::VecDeque;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TaskFst {

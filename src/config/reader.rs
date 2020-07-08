@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use yaml_rust::YamlLoader;
 
 pub fn read_tasks(s: &str) -> Result<HashMap<String, Task>, String> {
-  let yaml = YamlLoader::load_from_str(s).unwrap();
+  let yaml = YamlLoader::load_from_str(s).map_err(|msg| format!("Wrong Yaml format: {}", msg))?;
   let mut result = HashMap::new();
 
   if yaml.len() == 0 {
@@ -14,7 +14,7 @@ pub fn read_tasks(s: &str) -> Result<HashMap<String, Task>, String> {
   let tasks = yaml[0].get_tasks()?;
 
   for (id, task) in tasks.iter() {
-    let id = id.as_str().unwrap();
+    let id = id.as_str().ok_or("Task ids must be strings".to_string())?;
     let commands = task.get_commands();
     let depends_on = task.get_depends_on();
 
