@@ -1,5 +1,6 @@
 mod iter;
 use crate::fst::iter::*;
+use std::collections::VecDeque;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TaskFst {
@@ -48,6 +49,33 @@ impl TaskFst {
 
   pub fn get_state_id_from_label(&self, label: String) -> usize {
     self.states.iter().position(|s| s.label == label).unwrap()
+  }
+
+  pub fn is_cyclic(&self) -> bool {
+    let visited: &mut Vec<usize> = &mut Vec::with_capacity(self.states.len());
+    for s in &self.start_states {
+      visited.push(*s);
+      if self.is_cyclic_dfs(visited) {
+        return true;
+      }
+      visited.pop();
+    }
+    false
+  }
+
+  fn is_cyclic_dfs(&self, visited: &mut Vec<usize>) -> bool {
+    let cur = visited[visited.len() - 1];
+    for s in &self.states[cur].next {
+      if visited.contains(s) {
+        return true;
+      }
+      visited.push(*s);
+      if self.is_cyclic_dfs(visited) {
+        return true;
+      }
+      visited.pop();
+    }
+    false
   }
 
   pub fn iter(self) -> TaskIter {
@@ -125,5 +153,36 @@ mod test {
     fst.add_arc(0, 1);
 
     assert_eq!(fst.get_state_id_from_label("b".to_string()), 1)
+  }
+
+  #[test]
+  pub fn is_cyclic() {
+    let mut fst = TaskFst::new();
+    fst.add_state("a".to_string());
+    fst.add_state("b".to_string());
+    fst.add_arc(0, 1);
+    fst.add_start_state(0);
+
+    assert!(!fst.is_cyclic());
+
+    fst.add_state("c".to_string());
+    fst.add_arc(0, 2);
+    assert!(!fst.is_cyclic());
+    fst.add_arc(1, 2);
+    assert!(!fst.is_cyclic());
+
+    fst.add_state("d".to_string());
+    fst.add_arc(2, 3);
+    assert!(!fst.is_cyclic());
+
+    fst.add_state("e".to_string());
+    fst.add_start_state(4);
+    assert!(!fst.is_cyclic());
+
+    fst.add_arc(4, 3);
+    assert!(!fst.is_cyclic());
+
+    fst.add_arc(3, 1);
+    assert!(fst.is_cyclic());
   }
 }

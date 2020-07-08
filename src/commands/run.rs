@@ -42,6 +42,11 @@ impl Run {
       }
     }
 
+    if graph.is_cyclic() {
+      eprintln!("Can't execute your configuration. There is a deadlock in your tasks !");
+      std::process::exit(1);
+    }
+
     let processes: &mut Vec<Option<std::process::Child>> = &mut vec![];
     for _ in 0..graph.states.len() {
       processes.push(None);
