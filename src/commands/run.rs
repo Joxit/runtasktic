@@ -1,7 +1,10 @@
 use crate::config;
 use crate::fst::*;
-use std::fs;
+use libc::{fork, signal};
+use libc::{SIGHUP, SIG_IGN};
+use std::fs::{self, OpenOptions};
 use std::path::PathBuf;
+use std::process::{exit, Command, Stdio};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -9,6 +12,9 @@ pub struct Run {
   /// Configuration path (YAML)
   #[structopt()]
   config: PathBuf,
+  /// Run the task in background
+  #[structopt(long = "background", short = "b")]
+  background: bool,
 }
 
 impl Run {
@@ -17,9 +23,18 @@ impl Run {
       eprintln!("The config file {} does not exists", self.config.display());
       return;
     }
+
+    if self.background && unsafe { fork() } != 0 {
+      // The main process should return
+      return;
+    } else if self.background {
+      // Ignoring SIGHUP in background mode
+      unsafe { signal(SIGHUP, SIG_IGN) };
+    }
+
     if let Err(e) = self.run() {
       eprintln!("{}", e);
-      std::process::exit(1);
+      exit(1);
     }
   }
 
@@ -70,9 +85,12 @@ impl Run {
       if let Some(task) = graph_iter.next() {
         let label = task.label.to_string();
         let cmd_line = tasks.get(&label).unwrap().commands.join(" && ");
-        let child = std::process::Command::new("sh")
+        let child = Command::new("sh")
           .arg("-c")
           .arg(cmd_line.to_string())
+          .stdin(self.stdin())
+          .stdout(self.stdout()?)
+          .stderr(self.stderr()?)
           .spawn()
           .map_err(|msg| format!("Can't run command `{}`: {}", cmd_line, msg))?;
         processes[task.id] = Some(child);
@@ -93,6 +111,42 @@ impl Run {
           std::thread::sleep(std::time::Duration::from_millis(100));
         }
       }
+    }
+  }
+
+  fn stdout(&self) -> Result<Stdio, String> {
+    if self.background {
+      Ok(Stdio::from(
+        OpenOptions::new()
+          .create(true)
+          .append(true)
+          .open("task-scheduler.out")
+          .map_err(|msg| format!("Can't open output file: {}", msg))?,
+      ))
+    } else {
+      Ok(Stdio::piped())
+    }
+  }
+
+  fn stdin(&self) -> Stdio {
+    if self.background {
+      Stdio::null()
+    } else {
+      Stdio::piped()
+    }
+  }
+
+  fn stderr(&self) -> Result<Stdio, String> {
+    if self.background {
+      Ok(Stdio::from(
+        OpenOptions::new()
+          .create(true)
+          .append(true)
+          .open("task-scheduler.err")
+          .map_err(|msg| format!("Can't open error file: {}", msg))?,
+      ))
+    } else {
+      Ok(Stdio::piped())
     }
   }
 }

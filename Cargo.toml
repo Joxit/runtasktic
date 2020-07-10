@@ -16,4 +16,4 @@ categories = ["command-line-utilities"]
 structopt = "^0.3"
 yaml-rust = "^0.4"
 linked-hash-map = "^0.5"
-rustfst = "^0.5"
+libc = "^0.2"

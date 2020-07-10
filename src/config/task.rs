@@ -1,11 +1,9 @@
-use rustfst::StateId;
-
 #[derive(Debug, PartialEq)]
 pub struct Task {
   pub id: String,
   pub commands: Vec<String>,
   pub depends_on: Vec<String>,
-  pub state: StateId,
+  pub state: usize,
 }
 
 impl Task {
