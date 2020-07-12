@@ -75,6 +75,8 @@ impl Run {
       return Err(err_msg.to_string());
     }
 
+    let concurrency = config::read_concurrency(yaml.as_str())?;
+
     let processes: &mut Vec<Option<std::process::Child>> = &mut vec![];
     for _ in 0..graph.states.len() {
       processes.push(None);
@@ -82,7 +84,8 @@ impl Run {
 
     let graph_iter = &mut graph.iter();
     loop {
-      if let Some(task) = graph_iter.next() {
+      if graph_iter.has_next() && (graph_iter.n_in_progress() < concurrency || concurrency < 0) {
+        let task = graph_iter.next().unwrap();
         let label = task.label.to_string();
         let cmd_line = tasks.get(&label).unwrap().commands.join(" && ");
         let child = Command::new("sh")
@@ -124,7 +127,7 @@ impl Run {
           .map_err(|msg| format!("Can't open output file: {}", msg))?,
       ))
     } else {
-      Ok(Stdio::piped())
+      Ok(Stdio::inherit())
     }
   }
 
@@ -132,7 +135,7 @@ impl Run {
     if self.background {
       Stdio::null()
     } else {
-      Stdio::piped()
+      Stdio::inherit()
     }
   }
 
@@ -146,7 +149,7 @@ impl Run {
           .map_err(|msg| format!("Can't open error file: {}", msg))?,
       ))
     } else {
-      Ok(Stdio::piped())
+      Ok(Stdio::inherit())
     }
   }
 }

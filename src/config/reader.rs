@@ -27,6 +27,16 @@ pub fn read_tasks(s: &str) -> Result<HashMap<String, Task>, String> {
   Ok(result)
 }
 
+pub fn read_concurrency(s: &str) -> Result<i64, String> {
+  let yaml = YamlLoader::load_from_str(s).map_err(|msg| format!("Wrong Yaml format: {}", msg))?;
+  let default = Ok(-1);
+
+  if yaml.len() == 0 {
+    return default;
+  }
+  yaml[0].get_concurrency()
+}
+
 #[cfg(test)]
 mod test {
   use super::*;

@@ -4,11 +4,13 @@ use yaml_rust::Yaml;
 const TASKS_KEY: &str = "tasks";
 const COMMAND_KEY: &str = "commands";
 const DEPENDS_ON_KEY: &str = "depends_on";
+const CONCURRENCY_KEY: &str = "concurrency";
 
 pub trait YamlTasksScheduler {
   fn get_tasks(&self) -> Result<&LinkedHashMap<Yaml, Yaml>, String>;
   fn get_commands(&self) -> Vec<String>;
   fn get_depends_on(&self) -> Vec<String>;
+  fn get_concurrency(&self) -> Result<i64, String>;
 }
 
 impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
@@ -48,6 +50,22 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
     }
     vec![]
   }
+
+  fn get_concurrency(&self) -> Result<i64, String> {
+    if let Some(concurrency) = self.get(&Yaml::String(String::from(CONCURRENCY_KEY))) {
+      if let Some(concurrency) = concurrency.as_i64() {
+        if concurrency < 1 {
+          Err(String::from("Concurrency must be greater than 0 !"))
+        } else {
+          Ok(concurrency)
+        }
+      } else {
+        Err(String::from("Incorrect value, should be an integer"))
+      }
+    } else {
+      Ok(-1)
+    }
+  }
 }
 
 impl YamlTasksScheduler for Yaml {
@@ -68,6 +86,14 @@ impl YamlTasksScheduler for Yaml {
       depends_on.get_depends_on()
     } else {
       vec![]
+    }
+  }
+
+  fn get_concurrency(&self) -> Result<i64, String> {
+    if let Some(depends_on) = self.as_hash() {
+      depends_on.get_concurrency()
+    } else {
+      Ok(-1)
     }
   }
 }
