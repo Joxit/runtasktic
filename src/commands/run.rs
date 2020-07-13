@@ -1,4 +1,4 @@
-use crate::config;
+use crate::config::Config;
 use crate::fst::*;
 use libc::{fork, signal};
 use libc::{SIGHUP, SIG_IGN};
@@ -42,30 +42,31 @@ impl Run {
     let yaml = fs::read_to_string(self.config.as_path())
       .map_err(|msg| format!("Can't read the config file: {}", msg))?;
 
-    let mut tasks = config::read_tasks(yaml.as_str())
+    let mut config = Config::from_str(yaml.as_str())
       .map_err(|msg| format!("Can't process the config file: {}", msg))?;
 
-    let initial_states: Vec<String> = tasks
+    let initial_states: Vec<String> = config
+      .tasks()
       .values()
-      .filter(|task| task.depends_on.len() == 0)
-      .map(|task| task.id.to_string())
+      .filter(|task| task.depends_on().len() == 0)
+      .map(|task| task.id().to_owned())
       .collect();
 
     println!("Will start with {:?} as initial states", initial_states);
 
     let mut graph = TaskFst::new();
-    for task in tasks.values_mut() {
-      task.state = graph.add_state(task.id.to_string());
+    for task in config.tasks_values_mut() {
+      task.set_state(graph.add_state(task.id().to_owned()));
     }
 
-    for task in tasks.values() {
-      if task.depends_on.len() == 0 {
-        graph.add_start_state(task.state);
+    for task in config.tasks().values() {
+      if task.depends_on().len() == 0 {
+        graph.add_start_state(task.state());
       } else {
-        for prev in task.depends_on.iter() {
-          let err_msg = format!("{} depends on {} but does not exists", task.id, prev);
-          let prev_state = tasks.get(prev).ok_or(err_msg)?.state;
-          graph.add_arc(prev_state, task.state);
+        for prev in task.depends_on().iter() {
+          let err_msg = format!("{} depends on {} but does not exists", task.id(), prev);
+          let prev_state = config.tasks().get(prev).ok_or(err_msg)?.state();
+          graph.add_arc(prev_state, task.state());
         }
       }
     }
@@ -75,19 +76,19 @@ impl Run {
       return Err(err_msg.to_string());
     }
 
-    let concurrency = config::read_concurrency(yaml.as_str())?;
-
     let processes: &mut Vec<Option<std::process::Child>> = &mut vec![];
-    for _ in 0..graph.states.len() {
+    for _ in 0..graph.len() {
       processes.push(None);
     }
 
     let graph_iter = &mut graph.iter();
     loop {
-      if graph_iter.has_next() && (graph_iter.n_in_progress() < concurrency || concurrency < 0) {
+      if graph_iter.has_next()
+        && (graph_iter.n_in_progress() < config.concurrency() || config.concurrency() < 0)
+      {
         let task = graph_iter.next().unwrap();
-        let label = task.label.to_string();
-        let cmd_line = tasks.get(&label).unwrap().commands.join(" && ");
+        let label = task.label().to_string();
+        let cmd_line = config.tasks().get(&label).unwrap().commands().join(" && ");
         let child = Command::new("sh")
           .arg("-c")
           .arg(cmd_line.to_string())
@@ -96,7 +97,7 @@ impl Run {
           .stderr(self.stderr()?)
           .spawn()
           .map_err(|msg| format!("Can't run command `{}`: {}", cmd_line, msg))?;
-        processes[task.id] = Some(child);
+        processes[task.id()] = Some(child);
       } else if graph_iter.is_done() {
         return Ok(());
       } else {

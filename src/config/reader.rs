@@ -1,17 +1,11 @@
 use crate::config::yaml_trait::YamlTasksScheduler;
 use crate::config::Task;
 use std::collections::HashMap;
-use yaml_rust::YamlLoader;
+use yaml_rust::Yaml;
 
-pub fn read_tasks(s: &str) -> Result<HashMap<String, Task>, String> {
-  let yaml = YamlLoader::load_from_str(s).map_err(|msg| format!("Wrong Yaml format: {}", msg))?;
+pub fn read_tasks(yaml: &Yaml) -> Result<HashMap<String, Task>, String> {
   let mut result = HashMap::new();
-
-  if yaml.len() == 0 {
-    return Ok(result);
-  }
-
-  let tasks = yaml[0].get_tasks()?;
+  let tasks = yaml.get_tasks()?;
 
   for (id, task) in tasks.iter() {
     let id = id.as_str().ok_or("Task ids must be strings".to_string())?;
@@ -27,31 +21,21 @@ pub fn read_tasks(s: &str) -> Result<HashMap<String, Task>, String> {
   Ok(result)
 }
 
-pub fn read_concurrency(s: &str) -> Result<i64, String> {
-  let yaml = YamlLoader::load_from_str(s).map_err(|msg| format!("Wrong Yaml format: {}", msg))?;
-  let default = Ok(-1);
-
-  if yaml.len() == 0 {
-    return default;
-  }
-  yaml[0].get_concurrency()
-}
-
 #[cfg(test)]
 mod test {
   use super::*;
-
-  #[test]
-  pub fn read_tasks_empty_yaml() {
-    assert_eq!(read_tasks(""), Ok(HashMap::new()));
-  }
+  use yaml_rust::YamlLoader;
 
   #[test]
   pub fn read_tasks_single_empty_task() {
-    let yaml = "
+    let yaml = YamlLoader::load_from_str(
+      "
     tasks:
       a:
-    ";
+    ",
+    )
+    .unwrap();
+    let yaml = yaml.first().unwrap();
     let mut expected: HashMap<String, Task> = HashMap::new();
     expected.insert(
       String::from("a"),
@@ -62,12 +46,16 @@ mod test {
 
   #[test]
   pub fn read_tasks_single_command_task() {
-    let yaml = "
+    let yaml = YamlLoader::load_from_str(
+      "
     tasks:
       a:
         commands:
         - echo OK
-    ";
+    ",
+    )
+    .unwrap();
+    let yaml = yaml.first().unwrap();
     let mut expected: HashMap<String, Task> = HashMap::new();
     expected.insert(
       String::from("a"),
@@ -78,14 +66,19 @@ mod test {
 
   #[test]
   pub fn read_tasks_single_command_depends_on_task() {
-    let yaml = "
+    let yaml = YamlLoader::load_from_str(
+      "
     tasks:
       a:
         commands:
         - echo OK
         depends_on:
         - b
-    ";
+    ",
+    )
+    .unwrap();
+    let yaml = yaml.first().unwrap();
+
     let mut expected: HashMap<String, Task> = HashMap::new();
     expected.insert(
       String::from("a"),

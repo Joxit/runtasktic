@@ -3,16 +3,16 @@ use crate::fst::iter::*;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TaskFst {
-  pub states: Vec<TaskFstState>,
-  pub start_states: Vec<usize>,
+  states: Vec<TaskFstState>,
+  start_states: Vec<usize>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TaskFstState {
-  pub label: String,
-  pub id: usize,
-  pub next: Vec<usize>,
-  pub prev: Vec<usize>,
+  label: String,
+  id: usize,
+  next: Vec<usize>,
+  prev: Vec<usize>,
 }
 
 impl TaskFst {
@@ -21,6 +21,10 @@ impl TaskFst {
       states: vec![],
       start_states: vec![],
     }
+  }
+
+  pub fn len(&self) -> usize {
+    self.states.len()
   }
 
   pub fn add_state(&mut self, label: String) -> usize {
@@ -79,6 +83,16 @@ impl TaskFst {
 
   pub fn iter(self) -> TaskIter {
     TaskIter::new(self)
+  }
+}
+
+impl TaskFstState {
+  pub fn label(&self) -> &String {
+    &self.label
+  }
+
+  pub fn id(&self) -> usize {
+    self.id
   }
 }
 

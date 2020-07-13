@@ -1,9 +1,9 @@
 #[derive(Debug, PartialEq)]
 pub struct Task {
-  pub id: String,
-  pub commands: Vec<String>,
-  pub depends_on: Vec<String>,
-  pub state: usize,
+  id: String,
+  commands: Vec<String>,
+  depends_on: Vec<String>,
+  state: usize,
 }
 
 impl Task {
@@ -14,5 +14,21 @@ impl Task {
       depends_on: depends_on,
       state: 0,
     }
+  }
+
+  pub fn id(&self) -> &String {
+    &self.id
+  }
+  pub fn commands(&self) -> &Vec<String> {
+    &self.commands
+  }
+  pub fn depends_on(&self) -> &Vec<String> {
+    &self.depends_on
+  }
+  pub fn state(&self) -> usize {
+    self.state
+  }
+  pub fn set_state(&mut self, state: usize) {
+    self.state = state
   }
 }
