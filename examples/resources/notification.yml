@@ -1,0 +1,35 @@
+tasks:
+  a:
+    commands:
+      - echo Begin a
+      - sleep 0.5
+      - echo End a
+  b:
+    commands:
+      - echo Begin b
+      - sleep 0.5
+      - echo End b
+    depends_on: [ a ]
+  c:
+    commands:
+      - echo Begin c
+      - sleep 1
+      - echo End c
+    depends_on: [ a ]
+  d:
+    commands:
+      - echo Begin d
+      - sleep 0.5
+      - echo End d
+    depends_on: [ a ]
+  e:
+    commands:
+      - echo Begin e
+      - sleep 0.5
+      - echo End e
+    depends_on: [ b, c, d ]
+notification:
+  slack:
+    url: https://hooks.slack.com/services/XXXXX/XXXXX/XXXXX
+    channel: '#channel'
+    emoji: ':rocket:'

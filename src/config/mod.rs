@@ -3,13 +3,26 @@ use crate::config::yaml_trait::YamlTasksScheduler;
 use std::collections::HashMap;
 use yaml_rust::YamlLoader;
 
-mod reader;
 mod task;
 mod yaml_trait;
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct Config {
   tasks: HashMap<String, Task>,
   concurrency: i64,
+  notification: Option<Notification>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Notification {
+  slack: Option<Slack>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Slack {
+  url: String,
+  channel: String,
+  emoji: Option<String>,
 }
 
 impl Config {
@@ -20,8 +33,9 @@ impl Config {
       .ok_or(String::from("This config yaml is empty."))?;
 
     Ok(Config {
-      tasks: reader::read_tasks(yaml)?,
+      tasks: yaml.get_tasks()?,
       concurrency: yaml.get_concurrency()?,
+      notification: yaml.get_notification()?,
     })
   }
 
@@ -35,5 +49,25 @@ impl Config {
 
   pub fn concurrency(&self) -> i64 {
     self.concurrency
+  }
+}
+
+impl Notification {
+  pub fn slack(&self) -> &Slack {
+    &self.slack()
+  }
+}
+
+impl Slack {
+  pub fn url(&self) -> &String {
+    &self.url
+  }
+
+  pub fn channel(&self) -> &String {
+    &self.channel
+  }
+
+  pub fn emoji(&self) -> &Option<String> {
+    &self.emoji
   }
 }
