@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::{Config, WhenNotify};
 use crate::fst::*;
 use libc::{fork, signal};
 use libc::{SIGHUP, SIG_IGN};
@@ -99,7 +99,7 @@ impl Run {
           .map_err(|msg| format!("Can't run command `{}`: {}", cmd_line, msg))?;
         processes[task.id()] = Some(child);
       } else if graph_iter.is_done() {
-        return Ok(());
+        break;
       } else {
         let mut done = 0;
         for id in 0..processes.len() {
@@ -108,11 +108,42 @@ impl Run {
               done = done + 1;
               graph_iter.mark_done(id);
               processes[id] = None;
+              self.notify(
+                &config,
+                format!("Task {} ended", graph.get_state_from_id(id).label()).as_str(),
+                WhenNotify::TaskEnd,
+              );
             }
           }
         }
         if done == 0 {
           std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+      }
+    }
+
+    self.notify(&config, "All tasks ended", WhenNotify::End);
+
+    Ok(())
+  }
+
+  fn notify(&self, config: &Config, msg: &str, when: WhenNotify) {
+    if let Some(notification) = config.notification() {
+      if *notification.when() == WhenNotify::Never
+        || (*notification.when() != WhenNotify::Always && *notification.when() != when)
+      {
+        return;
+      }
+      if let Some(slack) = notification.slack() {
+        if let Some(when_slack) = slack.when() {
+          if *when_slack == WhenNotify::Never
+            || (*when_slack != WhenNotify::Always && *when_slack != when)
+          {
+            return;
+          }
+        }
+        if let Err(e) = crate::notification::post_slack(&slack, msg) {
+          eprintln!("Can't use slac notification: {}", e);
         }
       }
     }

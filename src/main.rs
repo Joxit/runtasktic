@@ -4,6 +4,7 @@ use structopt::StructOpt;
 mod commands;
 mod config;
 mod fst;
+mod notification;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "task-scheduler", author, about)]

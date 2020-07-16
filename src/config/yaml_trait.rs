@@ -12,6 +12,7 @@ const SLACK_KEY: &str = "slack";
 const URL_KEY: &str = "url";
 const CHANNEL_KEY: &str = "channel";
 const EMOJI_KEY: &str = "emoji";
+const WHEN_KEY: &str = "when";
 
 pub trait YamlTasksScheduler {
   fn get_tasks(&self) -> Result<HashMap<String, Task>, String>;
@@ -21,6 +22,7 @@ pub trait YamlTasksScheduler {
   fn get_notification(&self) -> Result<Option<Notification>, String>;
   fn get_slack(&self) -> Result<Option<Slack>, String>;
   fn get_string(&self, key: &str) -> Result<Option<String>, String>;
+  fn get_when_notify(&self) -> Result<Option<WhenNotify>, String>;
 }
 
 impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
@@ -91,6 +93,7 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
     if let Some(notification) = self.get(&Yaml::String(String::from(NOTIFICATION_KEY))) {
       return Ok(Some(Notification {
         slack: notification.get_slack()?,
+        when: notification.get_when_notify()?.unwrap_or(WhenNotify::End),
       }));
     }
     Ok(None)
@@ -106,6 +109,7 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
           .get_string(CHANNEL_KEY)?
           .ok_or(String::from("Slack channel is required!"))?,
         emoji: slack.get_string(EMOJI_KEY)?,
+        when: slack.get_when_notify()?,
       }));
     }
     Ok(None)
@@ -118,6 +122,21 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
         .ok_or(format!("{} is not a string type", key))?
         .to_string();
       Ok(Some(value))
+    } else {
+      Ok(None)
+    }
+  }
+
+  fn get_when_notify(&self) -> Result<Option<WhenNotify>, String> {
+    if let Some(when) = self.get_string(WHEN_KEY)? {
+      match when.as_str() {
+        "always" => Ok(Some(WhenNotify::Always)),
+        "task-end" => Ok(Some(WhenNotify::TaskEnd)),
+        "end" => Ok(Some(WhenNotify::End)),
+        "never" => Ok(Some(WhenNotify::Never)),
+        "" => Ok(None),
+        _ => Err(format!("{} is an incorrect value for when", when)),
+      }
     } else {
       Ok(None)
     }
@@ -175,6 +194,14 @@ impl YamlTasksScheduler for Yaml {
   fn get_string(&self, key: &str) -> Result<Option<String>, String> {
     if let Some(string) = self.as_hash() {
       string.get_string(key)
+    } else {
+      Ok(None)
+    }
+  }
+
+  fn get_when_notify(&self) -> Result<Option<WhenNotify>, String> {
+    if let Some(when_notify) = self.as_hash() {
+      when_notify.get_when_notify()
     } else {
       Ok(None)
     }

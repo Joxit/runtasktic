@@ -33,3 +33,4 @@ notification:
     url: https://hooks.slack.com/services/XXXXX/XXXXX/XXXXX
     channel: '#channel'
     emoji: ':rocket:'
+  when: always

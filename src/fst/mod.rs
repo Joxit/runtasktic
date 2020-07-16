@@ -46,12 +46,8 @@ impl TaskFst {
     self.states[to].prev.push(from);
   }
 
-  pub fn get_state_from_label(&self, label: String) -> &TaskFstState {
-    self.states.iter().find(|s| s.label == label).unwrap()
-  }
-
-  pub fn get_state_id_from_label(&self, label: String) -> usize {
-    self.states.iter().position(|s| s.label == label).unwrap()
+  pub fn get_state_from_id(&self, id: usize) -> &TaskFstState {
+    &self.states[id]
   }
 
   pub fn is_cyclic(&self) -> bool {
@@ -81,8 +77,8 @@ impl TaskFst {
     false
   }
 
-  pub fn iter(self) -> TaskIter {
-    TaskIter::new(self)
+  pub fn iter(&self) -> TaskIter {
+    TaskIter::new(&self)
   }
 }
 
@@ -138,34 +134,6 @@ mod test {
         start_states: vec![]
       }
     )
-  }
-
-  #[test]
-  pub fn get_state_from_label() {
-    let mut fst = TaskFst::new();
-    fst.add_state("a".to_string());
-    fst.add_state("b".to_string());
-    fst.add_arc(0, 1);
-
-    assert_eq!(
-      fst.get_state_from_label("b".to_string()),
-      &TaskFstState {
-        label: "b".to_string(),
-        id: 1,
-        next: vec![],
-        prev: vec![0]
-      }
-    )
-  }
-
-  #[test]
-  pub fn get_state_id_from_label() {
-    let mut fst = TaskFst::new();
-    fst.add_state("a".to_string());
-    fst.add_state("b".to_string());
-    fst.add_arc(0, 1);
-
-    assert_eq!(fst.get_state_id_from_label("b".to_string()), 1)
   }
 
   #[test]

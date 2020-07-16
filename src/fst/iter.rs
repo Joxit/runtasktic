@@ -15,7 +15,7 @@ pub enum TaskStatus {
 }
 
 impl TaskIter {
-  pub fn new(fst: TaskFst) -> TaskIter {
+  pub fn new(fst: &TaskFst) -> TaskIter {
     let copy = fst.clone();
     TaskIter {
       fst: copy,

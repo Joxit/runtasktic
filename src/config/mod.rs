@@ -16,6 +16,7 @@ pub struct Config {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Notification {
   slack: Option<Slack>,
+  when: WhenNotify,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -23,6 +24,15 @@ pub struct Slack {
   url: String,
   channel: String,
   emoji: Option<String>,
+  when: Option<WhenNotify>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum WhenNotify {
+  Always,
+  TaskEnd,
+  End,
+  Never,
 }
 
 impl Config {
@@ -50,11 +60,19 @@ impl Config {
   pub fn concurrency(&self) -> i64 {
     self.concurrency
   }
+
+  pub fn notification(&self) -> &Option<Notification> {
+    &self.notification
+  }
 }
 
 impl Notification {
-  pub fn slack(&self) -> &Slack {
-    &self.slack()
+  pub fn slack(&self) -> &Option<Slack> {
+    &self.slack
+  }
+
+  pub fn when(&self) -> &WhenNotify {
+    &self.when
   }
 }
 
@@ -69,5 +87,9 @@ impl Slack {
 
   pub fn emoji(&self) -> &Option<String> {
     &self.emoji
+  }
+
+  pub fn when(&self) -> &Option<WhenNotify> {
+    &self.when
   }
 }

@@ -17,3 +17,6 @@ structopt = "^0.3"
 yaml-rust = "^0.4"
 linked-hash-map = "^0.5"
 libc = "^0.2"
+attohttpc = "^0.15"
+openssl = { version = "^0.10", features = ["vendored"] }
+json = "^0.12"
