@@ -1,15 +1,15 @@
 [package]
-name = "task-scheduler"
+name = "runtasktic"
 version = "0.1.0"
 authors = ["Jones Magloire @Joxit"]
-description = "Command line task scheduler."
+description = "Command-line task management tool for execution of regular long sequential or parallel tasks."
 edition = "2018"
 license = "MIT"
-repository = "https://github.com/Joxit/task-scheduler"
-homepage = "https://github.com/Joxit/task-scheduler"
-documentation = "https://docs.rs/task-scheduler/"
+repository = "https://github.com/Joxit/runtasktic"
+homepage = "https://github.com/Joxit/runtasktic"
+documentation = "https://docs.rs/runtasktic/"
 readme = "README.md"
-keywords = ["cli"]
+keywords = ["cli", "shell", "command", "task"]
 categories = ["command-line-utilities"]
 
 [dependencies]
