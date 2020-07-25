@@ -1,4 +1,4 @@
-use crate::config::task::Task;
+pub use crate::config::task::Task;
 use crate::config::yaml_trait::YamlTasksScheduler;
 use std::collections::HashMap;
 use yaml_rust::YamlLoader;
@@ -67,6 +67,10 @@ impl Config {
 }
 
 impl Notification {
+  pub fn new(slack: Option<Slack>, when: WhenNotify) -> Notification {
+    Notification { slack, when }
+  }
+
   pub fn slack(&self) -> &Option<Slack> {
     &self.slack
   }
@@ -77,6 +81,20 @@ impl Notification {
 }
 
 impl Slack {
+  pub fn new(
+    url: String,
+    channel: String,
+    emoji: Option<String>,
+    when: Option<WhenNotify>,
+  ) -> Slack {
+    Slack {
+      url,
+      channel,
+      emoji,
+      when,
+    }
+  }
+
   pub fn url(&self) -> &String {
     &self.url
   }

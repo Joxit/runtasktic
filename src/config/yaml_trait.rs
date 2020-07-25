@@ -91,26 +91,26 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
 
   fn get_notification(&self) -> Result<Option<Notification>, String> {
     if let Some(notification) = self.get(&Yaml::String(String::from(NOTIFICATION_KEY))) {
-      return Ok(Some(Notification {
-        slack: notification.get_slack()?,
-        when: notification.get_when_notify()?.unwrap_or(WhenNotify::End),
-      }));
+      return Ok(Some(Notification::new(
+        notification.get_slack()?,
+        notification.get_when_notify()?.unwrap_or(WhenNotify::End),
+      )));
     }
     Ok(None)
   }
 
   fn get_slack(&self) -> Result<Option<Slack>, String> {
     if let Some(slack) = self.get(&Yaml::String(String::from(SLACK_KEY))) {
-      return Ok(Some(Slack {
-        url: slack
+      return Ok(Some(Slack::new(
+        slack
           .get_string(URL_KEY)?
           .ok_or(String::from("Slack url is required!"))?,
-        channel: slack
+        slack
           .get_string(CHANNEL_KEY)?
           .ok_or(String::from("Slack channel is required!"))?,
-        emoji: slack.get_string(EMOJI_KEY)?,
-        when: slack.get_when_notify()?,
-      }));
+        slack.get_string(EMOJI_KEY)?,
+        slack.get_when_notify()?,
+      )));
     }
     Ok(None)
   }
