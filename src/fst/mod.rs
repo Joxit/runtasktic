@@ -1,4 +1,6 @@
+mod dot;
 mod iter;
+
 use crate::fst::iter::*;
 
 #[derive(Debug, PartialEq, Clone)]
