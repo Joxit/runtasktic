@@ -1,5 +1,8 @@
 use crate::fst::TaskFst;
-use std::io::Write;
+use std::fs::File;
+use std::io::{Read, Write};
+use std::path::Path;
+use std::process::{Command, Stdio};
 
 pub fn dot_write_file<W: Write>(fst: &TaskFst, writer: &mut W) -> std::io::Result<()> {
   writeln!(writer, "digraph {{")?;
@@ -20,6 +23,26 @@ pub fn dot_write_file<W: Write>(fst: &TaskFst, writer: &mut W) -> std::io::Resul
     iter.mark_done(node.id);
   }
   writeln!(writer, "}}")?;
+  Ok(())
+}
+
+pub fn dot_write_png<R: Read, P: AsRef<Path>>(reader: &mut R, path: P) -> std::io::Result<()> {
+  let file = File::create(path)?;
+  let mut r: Vec<u8> = vec![];
+  reader.read_to_end(&mut r)?;
+  let mut child = Command::new("dot")
+    .arg("-T")
+    .arg("png")
+    .stdin(Stdio::piped())
+    .stdout(file)
+    .spawn()?;
+
+  if let Some(stdin) = &mut child.stdin {
+    stdin.write_all(&r)?;
+  }
+
+  child.wait()?;
+
   Ok(())
 }
 
