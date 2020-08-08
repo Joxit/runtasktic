@@ -17,6 +17,6 @@ Describe your tasks in a YAML file, execute all of them with runtasktic in foreg
 
 ## Configuration examples
 
-[Simple sample](https://github.com/Joxit/task-scheduler/blob/master/examples/resources/sample.yml)
-[Play with concurrency](https://github.com/Joxit/task-scheduler/blob/master/examples/resources/concurrency.yml)
-[Play with notification](https://github.com/Joxit/task-scheduler/blob/master/examples/resources/notification.yml)
+[Simple sample](https://github.com/Joxit/task-scheduler/blob/master/tests/resources/sample.yml)
+[Play with concurrency](https://github.com/Joxit/task-scheduler/blob/master/tests/resources/concurrency.yml)
+[Play with notification](https://github.com/Joxit/task-scheduler/blob/master/tests/resources/notification.yml)

@@ -1,4 +1,4 @@
-mod dot;
+pub mod dot;
 mod iter;
 
 use crate::fst::iter::*;
