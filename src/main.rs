@@ -7,7 +7,7 @@ mod fst;
 mod notification;
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "task-scheduler", author, about)]
+#[structopt(name = "runtasktic", author, about)]
 pub struct ApplicationArguments {
   #[structopt(subcommand)]
   pub command: Command,

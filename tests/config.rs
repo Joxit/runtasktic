@@ -107,6 +107,7 @@ fn notification_yaml() {
   let slack = Slack::new(
     "https://hooks.slack.com/services/XXXXX/XXXXX/XXXXX".to_string(),
     "#channel".to_string(),
+    Some("runtasktic".to_string()),
     Some(":rocket:".to_string()),
     None,
   );

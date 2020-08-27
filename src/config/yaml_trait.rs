@@ -12,6 +12,7 @@ const SLACK_KEY: &str = "slack";
 const URL_KEY: &str = "url";
 const CHANNEL_KEY: &str = "channel";
 const EMOJI_KEY: &str = "emoji";
+const USERNAME_KEY: &str = "username";
 const WHEN_KEY: &str = "when";
 
 pub trait YamlTasksScheduler {
@@ -108,6 +109,7 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
         slack
           .get_string(CHANNEL_KEY)?
           .ok_or(String::from("Slack channel is required!"))?,
+        slack.get_string(USERNAME_KEY)?,
         slack.get_string(EMOJI_KEY)?,
         slack.get_when_notify()?,
       )));

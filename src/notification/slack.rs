@@ -3,7 +3,7 @@ use crate::config::Slack;
 pub fn post_slack(slack: &Slack, message: &str) -> Result<(), String> {
   let mut content = json::object! {
     "channel" => slack.channel().as_str(),
-    "username" => "task-scheduler",
+    "username" => slack.username().as_ref().unwrap_or(&"runtasktic".to_string()).as_str(),
     "text" => message
   };
 

@@ -24,6 +24,7 @@ pub struct Slack {
   url: String,
   channel: String,
   emoji: Option<String>,
+  username: Option<String>,
   when: Option<WhenNotify>,
 }
 
@@ -84,12 +85,14 @@ impl Slack {
   pub fn new(
     url: String,
     channel: String,
+    username: Option<String>,
     emoji: Option<String>,
     when: Option<WhenNotify>,
   ) -> Slack {
     Slack {
       url,
       channel,
+      username,
       emoji,
       when,
     }
@@ -105,6 +108,10 @@ impl Slack {
 
   pub fn emoji(&self) -> &Option<String> {
     &self.emoji
+  }
+
+  pub fn username(&self) -> &Option<String> {
+    &self.username
   }
 
   pub fn when(&self) -> &Option<WhenNotify> {
