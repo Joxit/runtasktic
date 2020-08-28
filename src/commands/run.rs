@@ -81,6 +81,8 @@ impl Run {
       processes.push(None);
     }
 
+    let mut exit_success = 0;
+    let mut exit_failure = 0;
     let graph_iter = &mut graph.iter();
     loop {
       if graph_iter.has_next()
@@ -104,30 +106,43 @@ impl Run {
         let mut done = 0;
         for id in 0..processes.len() {
           if let Some(child) = processes[id].as_mut() {
-            if child.try_wait().unwrap().is_some() {
+            if let Ok(Some(exit)) = child.try_wait() {
+              if exit.success() {
+                exit_success = exit_success + 1;
+              } else {
+                exit_failure = exit_failure + 1;
+              }
+
               done = done + 1;
               graph_iter.mark_done(id);
               processes[id] = None;
-              self.notify(
-                &config,
-                format!("Task {} ended", graph.get_state_from_id(id).label()).as_str(),
-                WhenNotify::TaskEnd,
+
+              let msg = format!(
+                "Task {} ended with status code {}",
+                graph.get_state_from_id(id).label(),
+                exit
               );
+              self.notify(&config, msg, WhenNotify::TaskEnd);
             }
           }
         }
+
         if done == 0 {
           std::thread::sleep(std::time::Duration::from_millis(100));
         }
       }
     }
 
-    self.notify(&config, "All tasks ended", WhenNotify::End);
+    let msg = format!(
+      "All tasks ended. Got {} success and {} failure.",
+      exit_success, exit_failure
+    );
+    self.notify(&config, msg, WhenNotify::End);
 
     Ok(())
   }
 
-  fn notify(&self, config: &Config, msg: &str, when: WhenNotify) {
+  fn notify(&self, config: &Config, msg: String, when: WhenNotify) {
     if let Some(notification) = config.notification() {
       if *notification.when() == WhenNotify::Never
         || (*notification.when() != WhenNotify::Always && *notification.when() != when)
@@ -142,7 +157,7 @@ impl Run {
             return;
           }
         }
-        if let Err(e) = crate::notification::post_slack(&slack, msg) {
+        if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
           eprintln!("Can't use slac notification: {}", e);
         }
       }
