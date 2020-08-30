@@ -23,8 +23,9 @@ fn sample_yaml() {
     vec!["b".to_string(), "c".to_string()],
   );
 
-  assert_eq!(config.notification(), &None);
+  assert_eq!(*config.notification(), None);
   assert_eq!(config.concurrency(), -1);
+  assert_eq!(*config.working_dir(), Some(String::from("/custom/directory")));
   assert_eq!(config.tasks().len(), 4);
   assert_eq!(config.tasks().get(&"a".to_string()), Some(&a));
   assert_eq!(config.tasks().get(&"b".to_string()), Some(&b));
@@ -63,7 +64,7 @@ fn concurrency_yaml() {
     vec!["b".to_string(), "c".to_string(), "d".to_string()],
   );
 
-  assert_eq!(config.notification(), &None);
+  assert_eq!(*config.notification(), None);
   assert_eq!(config.concurrency(), 2);
   assert_eq!(config.tasks().len(), 5);
   assert_eq!(config.tasks().get(&"a".to_string()), Some(&a));
@@ -113,7 +114,7 @@ fn notification_yaml() {
   );
   let notification = Notification::new(Some(slack), WhenNotify::Always);
 
-  assert_eq!(config.notification(), &Some(notification));
+  assert_eq!(*config.notification(), Some(notification));
   assert_eq!(config.concurrency(), -1);
   assert_eq!(config.tasks().len(), 5);
   assert_eq!(config.tasks().get(&"a".to_string()), Some(&a));

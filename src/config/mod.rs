@@ -11,6 +11,7 @@ pub struct Config {
   tasks: HashMap<String, Task>,
   concurrency: i64,
   notification: Option<Notification>,
+  working_dir: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -47,6 +48,7 @@ impl Config {
       tasks: yaml.get_tasks()?,
       concurrency: yaml.get_concurrency()?,
       notification: yaml.get_notification()?,
+      working_dir: yaml.get_working_dir()?,
     })
   }
 
@@ -64,6 +66,10 @@ impl Config {
 
   pub fn notification(&self) -> &Option<Notification> {
     &self.notification
+  }
+
+  pub fn working_dir(&self) -> &Option<String> {
+    &self.working_dir
   }
 }
 

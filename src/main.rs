@@ -5,6 +5,7 @@ mod commands;
 mod config;
 mod fst;
 mod notification;
+mod utils;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "runtasktic", author, about)]

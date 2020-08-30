@@ -16,3 +16,4 @@ tasks:
     commands:
       - echo d
     depends_on: [ b, c ]
+working_dir: /custom/directory

@@ -1,3 +1,4 @@
+use crate::utils::traits::CommandConfig;
 use crate::config::{Config, WhenNotify};
 use crate::fst::*;
 use libc::{fork, signal};
@@ -97,6 +98,7 @@ impl Run {
           .stdin(self.stdin())
           .stdout(self.stdout()?)
           .stderr(self.stderr()?)
+          .working_dir(config.working_dir())
           .spawn()
           .map_err(|msg| format!("Can't run command `{}`: {}", cmd_line, msg))?;
         processes[task.id()] = Some(child);
