@@ -12,6 +12,8 @@ pub struct Config {
   concurrency: i64,
   notification: Option<Notification>,
   working_dir: Option<String>,
+  stdout: Option<String>,
+  stderr: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -49,6 +51,8 @@ impl Config {
       concurrency: yaml.get_concurrency()?,
       notification: yaml.get_notification()?,
       working_dir: yaml.get_working_dir()?,
+      stdout: yaml.get_stdout()?,
+      stderr: yaml.get_stderr()?,
     })
   }
 
@@ -70,6 +74,14 @@ impl Config {
 
   pub fn working_dir(&self) -> &Option<String> {
     &self.working_dir
+  }
+
+  pub fn stdout(&self) -> &Option<String> {
+    &self.stdout
+  }
+
+  pub fn stderr(&self) -> &Option<String> {
+    &self.stderr
   }
 }
 

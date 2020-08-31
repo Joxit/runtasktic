@@ -17,3 +17,5 @@ tasks:
       - echo d
     depends_on: [ b, c ]
 working_dir: /custom/directory
+stdout: none
+stderr: none

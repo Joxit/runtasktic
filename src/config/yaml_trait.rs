@@ -15,6 +15,8 @@ const EMOJI_KEY: &str = "emoji";
 const USERNAME_KEY: &str = "username";
 const WHEN_KEY: &str = "when";
 const WORKING_DIR_KEY: &str = "working_dir";
+const STDOUT_KEY: &str = "stdout";
+const STDERR_KEY: &str = "stderr";
 
 pub trait YamlTasksScheduler {
   fn get_tasks(&self) -> Result<HashMap<String, Task>, String>;
@@ -25,7 +27,15 @@ pub trait YamlTasksScheduler {
   fn get_slack(&self) -> Result<Option<Slack>, String>;
   fn get_string(&self, key: &str) -> Result<Option<String>, String>;
   fn get_when_notify(&self) -> Result<Option<WhenNotify>, String>;
-  fn get_working_dir(&self) -> Result<Option<String>, String>;
+  fn get_working_dir(&self) -> Result<Option<String>, String> {
+    self.get_string(WORKING_DIR_KEY)
+  }
+  fn get_stdout(&self) -> Result<Option<String>, String> {
+    self.get_string(STDOUT_KEY)
+  }
+  fn get_stderr(&self) -> Result<Option<String>, String> {
+    self.get_string(STDERR_KEY)
+  }
 }
 
 impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
@@ -145,10 +155,6 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
       Ok(None)
     }
   }
-
-  fn get_working_dir(&self) -> Result<Option<String>, String> {
-    self.get_string(WORKING_DIR_KEY)
-  }
 }
 
 impl YamlTasksScheduler for Yaml {
@@ -213,10 +219,6 @@ impl YamlTasksScheduler for Yaml {
     } else {
       Ok(None)
     }
-  }
-
-  fn get_working_dir(&self) -> Result<Option<String>, String> {
-    self.get_string(WORKING_DIR_KEY)
   }
 }
 

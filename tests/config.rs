@@ -26,6 +26,8 @@ fn sample_yaml() {
   assert_eq!(*config.notification(), None);
   assert_eq!(config.concurrency(), -1);
   assert_eq!(*config.working_dir(), Some(String::from("/custom/directory")));
+  assert_eq!(*config.stdout(), Some(String::from("none")));
+  assert_eq!(*config.stderr(), Some(String::from("none")));
   assert_eq!(config.tasks().len(), 4);
   assert_eq!(config.tasks().get(&"a".to_string()), Some(&a));
   assert_eq!(config.tasks().get(&"b".to_string()), Some(&b));
