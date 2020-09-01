@@ -1,18 +1,23 @@
 use std::fs::OpenOptions;
 use std::process::{Command, Stdio};
+use std::path::Path;
 
 pub trait CommandConfig {
-  fn working_dir(&mut self, dir: &Option<String>) -> &mut Self;
+  fn working_dir(&mut self, dir: &Option<String>) -> Result<&mut Self, String>;
   fn stdout_opt(&mut self, stdout: &Option<String>, inherit: bool) -> Result<&mut Self, String>;
   fn stderr_opt(&mut self, stdout: &Option<String>, inherit: bool) -> Result<&mut Self, String>;
 }
 
 impl CommandConfig for Command {
-  fn working_dir(&mut self, dir: &Option<String>) -> &mut Self {
+  fn working_dir(&mut self, dir: &Option<String>) -> Result<&mut Self, String> {
     if let Some(d) = dir {
-      self.current_dir(d)
+      if Path::new(d).is_dir() {
+        Ok(self.current_dir(d))
+      } else {
+        Err(format!("Invalid working directory: `{}` is not a directory", d))
+      }
     } else {
-      self
+      Ok(self)
     }
   }
 
