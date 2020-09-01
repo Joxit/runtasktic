@@ -96,8 +96,8 @@ impl Run {
           .arg("-c")
           .arg(cmd_line.to_string())
           .stdin(self.stdin())
-          .stdout(self.stdout()?)
-          .stderr(self.stderr()?)
+          .stdout_opt(config.stdout(), !self.background)?
+          .stderr_opt(config.stderr(), !self.background)?
           .working_dir(config.working_dir())
           .spawn()
           .map_err(|msg| format!("Can't run command `{}`: {}", cmd_line, msg))?;
@@ -166,39 +166,11 @@ impl Run {
     }
   }
 
-  fn stdout(&self) -> Result<Stdio, String> {
-    if self.background {
-      Ok(Stdio::from(
-        OpenOptions::new()
-          .create(true)
-          .append(true)
-          .open("task-scheduler.out")
-          .map_err(|msg| format!("Can't open output file: {}", msg))?,
-      ))
-    } else {
-      Ok(Stdio::inherit())
-    }
-  }
-
   fn stdin(&self) -> Stdio {
     if self.background {
       Stdio::null()
     } else {
       Stdio::inherit()
-    }
-  }
-
-  fn stderr(&self) -> Result<Stdio, String> {
-    if self.background {
-      Ok(Stdio::from(
-        OpenOptions::new()
-          .create(true)
-          .append(true)
-          .open("task-scheduler.err")
-          .map_err(|msg| format!("Can't open error file: {}", msg))?,
-      ))
-    } else {
-      Ok(Stdio::inherit())
     }
   }
 }
