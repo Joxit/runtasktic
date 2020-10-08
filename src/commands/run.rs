@@ -46,15 +46,6 @@ impl Run {
     let mut config = Config::from_str(yaml.as_str())
       .map_err(|msg| format!("Can't process the config file: {}", msg))?;
 
-    let initial_states: Vec<String> = config
-      .tasks()
-      .values()
-      .filter(|task| task.depends_on().len() == 0)
-      .map(|task| task.id().to_owned())
-      .collect();
-
-    println!("Will start with {:?} as initial states", initial_states);
-
     let mut graph = TaskFst::new();
     for task in config.tasks_values_mut() {
       task.set_state(graph.add_state(task.id().to_owned()));

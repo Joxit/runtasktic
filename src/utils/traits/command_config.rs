@@ -30,7 +30,7 @@ impl CommandConfig for Command {
   fn stderr_opt(&mut self, stderr: &Option<String>, inherit: bool) -> Result<&mut Self, String> {
     let stdio = process_stdio(stderr, inherit, "runtasktic.err")?;
 
-    Ok(self.stdout(stdio))
+    Ok(self.stderr(stdio))
   }
 }
 
