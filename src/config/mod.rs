@@ -6,7 +6,7 @@ use yaml_rust::YamlLoader;
 mod task;
 mod yaml_trait;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct Config {
   tasks: HashMap<String, Task>,
   concurrency: i64,

@@ -1,6 +1,6 @@
-use crate::utils::traits::CommandConfig;
 use crate::config::{Config, WhenNotify};
 use crate::fst::*;
+use crate::utils::traits::CommandConfig;
 use libc::{fork, signal};
 use libc::{SIGHUP, SIG_IGN};
 use std::fs;
