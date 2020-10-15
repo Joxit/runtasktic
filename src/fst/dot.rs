@@ -80,7 +80,9 @@ mod test {
     assert!(super::dot_write_file(&fst, &mut result).is_ok());
     let result = std::str::from_utf8(&result).unwrap();
     println!("{}", result);
-    assert_eq!(result, r#"digraph {
+    assert_eq!(
+      result,
+      r#"digraph {
   a[label="\"a\"" shape=doublecircle]
   a -> b_a_ba
   a -> c
@@ -92,6 +94,7 @@ mod test {
   c -> ds
   ds[label="d%s" shape=circle]
 }
-"#);
+"#
+    );
   }
 }
