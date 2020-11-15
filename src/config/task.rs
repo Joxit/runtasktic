@@ -1,17 +1,21 @@
+use crate::config::OnFailure;
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Task {
   id: String,
   commands: Vec<String>,
   depends_on: Vec<String>,
+  on_failure: Option<OnFailure>,
   state: usize,
 }
 
 impl Task {
-  pub fn new(id: String, commands: Vec<String>, depends_on: Vec<String>) -> Task {
+  pub fn new(id: String, commands: Vec<String>, depends_on: Vec<String>, on_failure: Option<OnFailure>) -> Task {
     Task {
       id: id,
       commands: commands,
       depends_on: depends_on,
+      on_failure: on_failure,
       state: 0,
     }
   }
@@ -24,6 +28,9 @@ impl Task {
   }
   pub fn depends_on(&self) -> &Vec<String> {
     &self.depends_on
+  }
+  pub fn on_failure(&self) -> &Option<OnFailure> {
+    &self.on_failure
   }
   pub fn state(&self) -> usize {
     self.state

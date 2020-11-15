@@ -17,6 +17,7 @@ const WHEN_KEY: &str = "when";
 const WORKING_DIR_KEY: &str = "working_dir";
 const STDOUT_KEY: &str = "stdout";
 const STDERR_KEY: &str = "stderr";
+const ON_FAILURE_KEY: &str = "on_failure";
 
 pub trait YamlTasksScheduler {
   fn get_tasks(&self) -> Result<HashMap<String, Task>, String>;
@@ -27,6 +28,7 @@ pub trait YamlTasksScheduler {
   fn get_slack(&self) -> Result<Option<Slack>, String>;
   fn get_string(&self, key: &str) -> Result<Option<String>, String>;
   fn get_when_notify(&self) -> Result<Option<WhenNotify>, String>;
+  fn get_on_failure(&self) -> Result<Option<OnFailure>, String>;
   fn get_working_dir(&self) -> Result<Option<String>, String> {
     self.get_string(WORKING_DIR_KEY)
   }
@@ -47,9 +49,10 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
           let id = id.as_str().ok_or("Task ids must be strings".to_string())?;
           let commands = task.get_commands();
           let depends_on = task.get_depends_on();
+          let on_failure = task.get_on_failure()?;
           result.insert(
             id.to_string(),
-            Task::new(id.to_string(), commands, depends_on),
+            Task::new(id.to_string(), commands, depends_on, on_failure),
           );
         }
         return Ok(result);
@@ -155,6 +158,19 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
       Ok(None)
     }
   }
+
+  fn get_on_failure(&self) -> Result<Option<OnFailure>, String> {
+    if let Some(on_failure) = self.get_string(ON_FAILURE_KEY)? {
+      match on_failure.as_str() {
+        "continue" => Ok(Some(OnFailure::Continue)),
+        "exit" => Ok(Some(OnFailure::Exit)),
+        "" => Ok(None),
+        _ => Err(format!("{} is an incorrect value for on_failure", on_failure)),
+      }
+    } else {
+      Ok(None)
+    }
+  }
 }
 
 impl YamlTasksScheduler for Yaml {
@@ -216,6 +232,14 @@ impl YamlTasksScheduler for Yaml {
   fn get_when_notify(&self) -> Result<Option<WhenNotify>, String> {
     if let Some(when_notify) = self.as_hash() {
       when_notify.get_when_notify()
+    } else {
+      Ok(None)
+    }
+  }
+
+  fn get_on_failure(&self) -> Result<Option<OnFailure>, String> {
+    if let Some(on_failure) = self.as_hash() {
+      on_failure.get_on_failure()
     } else {
       Ok(None)
     }

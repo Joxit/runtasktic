@@ -39,6 +39,12 @@ pub enum WhenNotify {
   Never,
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub enum OnFailure {
+  Continue,
+  Exit,
+}
+
 impl Config {
   pub fn from_str(s: &str) -> Result<Config, String> {
     let yaml = YamlLoader::load_from_str(s).map_err(|msg| format!("Wrong Yaml format: {}", msg))?;
