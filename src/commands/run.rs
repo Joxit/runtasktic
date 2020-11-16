@@ -1,4 +1,4 @@
-use crate::config::{Config, WhenNotify};
+use crate::config::{Config, OnFailure, WhenNotify};
 use crate::fst::*;
 use crate::utils::traits::CommandConfig;
 use libc::{fork, signal};
@@ -75,10 +75,12 @@ impl Run {
 
     let mut exit_success = 0;
     let mut exit_failure = 0;
+    let mut ask_for_exit = false;
     let graph_iter = &mut graph.iter();
     loop {
       if graph_iter.has_next()
         && (graph_iter.n_in_progress() < config.concurrency() || config.concurrency() < 0)
+        && !ask_for_exit
       {
         let task = graph_iter.next().unwrap();
         let label = task.label().to_string();
@@ -100,35 +102,48 @@ impl Run {
         for id in 0..processes.len() {
           if let Some(child) = processes[id].as_mut() {
             if let Ok(Some(exit)) = child.try_wait() {
-              if exit.success() {
+              let label = graph.get_state_from_id(id).label().to_string();
+              let is_failure = if exit.success() {
                 exit_success = exit_success + 1;
+                false
               } else {
                 exit_failure = exit_failure + 1;
-              }
+                true
+              };
 
               done = done + 1;
               graph_iter.mark_done(id);
               processes[id] = None;
 
-              let msg = format!(
-                "Task {} ended with status code {}",
-                graph.get_state_from_id(id).label(),
-                exit
-              );
+              let msg = format!("Task {} ended with status code {}", label, exit);
               self.notify(&config, msg, WhenNotify::TaskEnd);
+
+              if let Some(OnFailure::Exit) = config.tasks().get(&label).unwrap().on_failure() {
+                if is_failure {
+                  ask_for_exit = true;
+                }
+              }
             }
           }
         }
 
-        if done == 0 {
+        if graph_iter.n_in_progress() == 0 && ask_for_exit {
+          break;
+        } else if done == 0 {
           std::thread::sleep(std::time::Duration::from_millis(100));
         }
       }
     }
 
     let msg = format!(
-      "All tasks ended. Got {} success and {} failure.",
-      exit_success, exit_failure
+      "All tasks ended. Got {} success and {} failure.{}",
+      exit_success,
+      exit_failure,
+      if ask_for_exit {
+        " Contains one critical failure."
+      } else {
+        ""
+      }
     );
     self.notify(&config, msg, WhenNotify::End);
 

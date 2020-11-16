@@ -10,7 +10,12 @@ pub struct Task {
 }
 
 impl Task {
-  pub fn new(id: String, commands: Vec<String>, depends_on: Vec<String>, on_failure: Option<OnFailure>) -> Task {
+  pub fn new(
+    id: String,
+    commands: Vec<String>,
+    depends_on: Vec<String>,
+    on_failure: Option<OnFailure>,
+  ) -> Task {
     Task {
       id: id,
       commands: commands,

@@ -165,7 +165,10 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
         "continue" => Ok(Some(OnFailure::Continue)),
         "exit" => Ok(Some(OnFailure::Exit)),
         "" => Ok(None),
-        _ => Err(format!("{} is an incorrect value for on_failure", on_failure)),
+        _ => Err(format!(
+          "{} is an incorrect value for on_failure",
+          on_failure
+        )),
       }
     } else {
       Ok(None)
