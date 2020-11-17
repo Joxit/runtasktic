@@ -267,7 +267,7 @@ mod test {
     let mut expected: HashMap<String, Task> = HashMap::new();
     expected.insert(
       String::from("a"),
-      Task::new(String::from("a"), vec![], vec![]),
+      Task::new(String::from("a"), vec![], vec![], None),
     );
     assert_eq!(yaml.get_tasks(), Ok(expected));
   }
@@ -287,7 +287,7 @@ mod test {
     let mut expected: HashMap<String, Task> = HashMap::new();
     expected.insert(
       String::from("a"),
-      Task::new(String::from("a"), vec![String::from("echo OK")], vec![]),
+      Task::new(String::from("a"), vec![String::from("echo OK")], vec![], None),
     );
     assert_eq!(yaml.get_tasks(), Ok(expected));
   }
@@ -313,7 +313,7 @@ mod test {
       Task::new(
         String::from("a"),
         vec![String::from("echo OK")],
-        vec![String::from("b")],
+        vec![String::from("b")], None,
       ),
     );
     assert_eq!(yaml.get_tasks(), Ok(expected));

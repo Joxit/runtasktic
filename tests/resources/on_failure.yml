@@ -1,0 +1,33 @@
+tasks:
+  a:
+    commands:
+      - echo Begin a
+      - unknown-cmd
+      - echo End a
+    on_failure: continue
+  b:
+    commands:
+      - echo Begin b
+      - unknown-cmd
+      - echo End b
+    depends_on: [ a ]
+    on_failure: exit
+  c:
+    commands:
+      - echo Begin c
+      - sleep 1
+      - echo End c
+    depends_on: [ a ]
+  d:
+    commands:
+      - echo Begin d
+      - sleep 0.5
+      - echo End d
+    depends_on: [ a ]
+  e:
+    commands:
+      - echo Begin e
+      - sleep 0.5
+      - echo End e
+    depends_on: [ b, c, d ]
+concurrency: 2
