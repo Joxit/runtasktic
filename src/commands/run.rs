@@ -117,11 +117,10 @@ impl Run {
 
               let msg = format!("Task {} ended with status code {}", label, exit);
               self.notify(&config, msg, WhenNotify::TaskEnd);
+              let on_failure = config.tasks().get(&label).unwrap().on_failure().as_ref();
 
-              if let Some(OnFailure::Exit) = config.tasks().get(&label).unwrap().on_failure() {
-                if is_failure {
-                  ask_for_exit = true;
-                }
+              if is_failure && on_failure.unwrap_or(config.on_failure()) == &OnFailure::Exit {
+                ask_for_exit = true;
               }
             }
           }

@@ -14,6 +14,7 @@ pub struct Config {
   working_dir: Option<String>,
   stdout: Option<String>,
   stderr: Option<String>,
+  on_failure: OnFailure,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -59,6 +60,7 @@ impl Config {
       working_dir: yaml.get_working_dir()?,
       stdout: yaml.get_stdout()?,
       stderr: yaml.get_stderr()?,
+      on_failure: yaml.get_on_failure()?.unwrap_or(OnFailure::Continue),
     })
   }
 
@@ -88,6 +90,10 @@ impl Config {
 
   pub fn stderr(&self) -> &Option<String> {
     &self.stderr
+  }
+
+  pub fn on_failure(&self) -> &OnFailure {
+    &self.on_failure
   }
 }
 
@@ -140,5 +146,11 @@ impl Slack {
 
   pub fn when(&self) -> &Option<WhenNotify> {
     &self.when
+  }
+}
+
+impl Default for OnFailure {
+  fn default() -> OnFailure {
+    OnFailure::Continue
   }
 }

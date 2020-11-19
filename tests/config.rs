@@ -11,14 +11,19 @@ fn sample_yaml() {
   let yaml = fs::read_to_string(SAMPLE_YAML).unwrap();
   let config = Config::from_str(yaml.as_str()).unwrap();
 
-  let a = Task::new("a".to_string(), vec![echo("a"), sleep("0.5")], vec![],None);
+  let a = Task::new("a".to_string(), vec![echo("a"), sleep("0.5")], vec![], None);
   let b = Task::new(
     "b".to_string(),
     vec![echo("b"), sleep("0.5")],
     vec!["a".to_string()],
     None,
   );
-  let c = Task::new("c".to_string(), vec![echo("c")], vec!["a".to_string()],None);
+  let c = Task::new(
+    "c".to_string(),
+    vec![echo("c")],
+    vec!["a".to_string()],
+    None,
+  );
   let d = Task::new(
     "d".to_string(),
     vec![echo("d")],
@@ -178,7 +183,8 @@ fn on_failure_yaml() {
     None,
   );
 
-  assert_eq!(*config.notification(), None);
+  assert_eq!(config.on_failure(), &OnFailure::Continue);
+  assert_eq!(config.notification(), &None);
   assert_eq!(config.concurrency(), 2);
   assert_eq!(config.tasks().len(), 5);
   assert_eq!(config.tasks().get(&"a".to_string()), Some(&a));
