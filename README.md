@@ -93,7 +93,37 @@ ARGS:
     <image>     Path for the image. `dot` command is required
 ```
 
-## Configuration examples
+## Configuration
+
+```yaml
+tasks:
+  a: # The id of the task
+    commands: # Commands to execute, they must exist with a 0 exit code
+      - echo Begin a 
+      - sleep 0.5
+      - echo End a
+    on_failure: exit # `continue` or `exit` when the tasks ends with a non 0 exit code
+  b:
+    commands:
+      - echo Begin b
+      - sleep 0.25
+      - echo End b
+    depends_on: [ a ] # This task will be executed after a. 
+notification:
+  slack: # send notification to slack
+    url: https://hooks.slack.com/services/XXXXX/XXXXX/XXXXX # The slack server url
+    channel: '#channel' # channel to send message
+    emoji: ':rocket:' # emoji to use (optional)
+    username: runtasktic # the username to use, default is runtasktic.
+  when: always # `always`, `task-end`, `end` or `never` when should I send notification
+concurrency: 2 # how many task can run simultaneously
+working_dir: /custom/directory # Where is the workind directory, default is where your are using runtasktic
+stdout: none # `none`, `/custom/path` where should I save standard logs
+stderr: /var/log/runtasktic.err # `none`, `/custom/path` where should I save error logs
+on_failure: continue # `continue` or `exit` default behaviour when a task fail, default is `continue`
+```
+
+### Configuration examples
 
 [Simple sample](https://github.com/Joxit/task-scheduler/blob/master/tests/resources/sample.yml)
 
