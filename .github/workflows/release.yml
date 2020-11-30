@@ -25,7 +25,7 @@ jobs:
     - name: Download kokai
       run: curl -sSL https://github.com/Joxit/kokai/releases/download/$(curl -sSL https://api.github.com/repos/Joxit/kokai/releases/latest | jq -r ".tag_name")/kokai-linux-x86_64 > kokai
     - name: Create Release Note
-      run: chmod +x kokai && ./kokai release --tag ${{ github.ref }} . > RELEASE_NOTE.md
+      run: chmod +x kokai && ./kokai release --ref ${{ github.ref }} --tag-from-ref . > RELEASE_NOTE.md
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -45,4 +45,5 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./target/release/runtasktic
+        asset_content_type: application/octet-stream
         asset_name: runtasktic-linux-x86_64
