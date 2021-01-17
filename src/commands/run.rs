@@ -4,15 +4,15 @@ use crate::utils::traits::CommandConfig;
 use libc::{fork, signal};
 use libc::{SIGHUP, SIG_IGN};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{exit, Command, Stdio};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 pub struct Run {
-  /// Configuration path (YAML)
+  /// Configurations path (YAML)
   #[structopt()]
-  config: PathBuf,
+  config: Vec<PathBuf>,
   /// Run the task in background
   #[structopt(long = "background", short = "b")]
   background: bool,
@@ -20,9 +20,11 @@ pub struct Run {
 
 impl Run {
   pub fn exec(&self) {
-    if !self.config.exists() {
-      eprintln!("The config file {} does not exists", self.config.display());
-      return;
+    for config in &self.config {
+      if !config.exists() {
+        eprintln!("The config file {} does not exists", config.display());
+        exit(1);
+      }
     }
 
     if self.background && unsafe { fork() } != 0 {
@@ -33,15 +35,17 @@ impl Run {
       unsafe { signal(SIGHUP, SIG_IGN) };
     }
 
-    if let Err(e) = self.run() {
-      eprintln!("{}", e);
-      exit(1);
+    for config in &self.config {
+      if let Err(e) = self.run(&config.as_path()) {
+        eprintln!("{}", e);
+        exit(1);
+      }
     }
   }
 
-  fn run(&self) -> Result<(), String> {
-    let yaml = fs::read_to_string(self.config.as_path())
-      .map_err(|msg| format!("Can't read the config file: {}", msg))?;
+  fn run(&self, config: &Path) -> Result<(), String> {
+    let yaml =
+      fs::read_to_string(config).map_err(|msg| format!("Can't read the config file: {}", msg))?;
 
     let mut config = Config::from_str(yaml.as_str())
       .map_err(|msg| format!("Can't process the config file: {}", msg))?;
