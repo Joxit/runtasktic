@@ -79,6 +79,31 @@ impl TaskFst {
     false
   }
 
+  pub fn reachable_states(&self) -> Vec<bool> {
+    let visited: &mut Vec<usize> = &mut Vec::with_capacity(self.states.len());
+    let reachable: &mut Vec<bool> = &mut vec![false; self.states.len()];
+    for s in &self.start_states {
+      reachable[*s] = true;
+      visited.push(*s);
+      self.reachable_states_dfs(visited, reachable);
+      visited.pop();
+    }
+    reachable.clone()
+  }
+
+  fn reachable_states_dfs(&self, visited: &mut Vec<usize>, reachable: &mut Vec<bool>) {
+    let cur = visited[visited.len() - 1];
+    for s in &self.states[cur].next {
+      reachable[*s] = true;
+      if visited.contains(s) {
+        return;
+      }
+      visited.push(*s);
+      self.reachable_states_dfs(visited, reachable);
+      visited.pop();
+    }
+  }
+
   pub fn iter(&self) -> TaskIter {
     TaskIter::new(&self)
   }
@@ -139,27 +164,37 @@ mod test {
   }
 
   #[test]
-  pub fn is_cyclic() {
+  pub fn is_cyclic_and_reachable() {
     let mut fst = TaskFst::new();
     fst.add_state("a".to_string());
     fst.add_state("b".to_string());
+
     fst.add_arc(0, 1);
+    assert_eq!(fst.reachable_states(), vec![false, false]);
     fst.add_start_state(0);
+    assert_eq!(fst.reachable_states(), vec![true, true]);
 
     assert!(!fst.is_cyclic());
 
     fst.add_state("c".to_string());
+
+    assert_eq!(fst.reachable_states(), vec![true, true, false]);
     fst.add_arc(0, 2);
+    assert_eq!(fst.reachable_states(), vec![true, true, true]);
     assert!(!fst.is_cyclic());
     fst.add_arc(1, 2);
     assert!(!fst.is_cyclic());
 
     fst.add_state("d".to_string());
+    assert_eq!(fst.reachable_states(), vec![true, true, true, false]);
     fst.add_arc(2, 3);
+    assert_eq!(fst.reachable_states(), vec![true, true, true, true]);
     assert!(!fst.is_cyclic());
 
     fst.add_state("e".to_string());
+    assert_eq!(fst.reachable_states(), vec![true, true, true, true, false]);
     fst.add_start_state(4);
+    assert_eq!(fst.reachable_states(), vec![true, true, true, true, true]);
     assert!(!fst.is_cyclic());
 
     fst.add_arc(4, 3);
