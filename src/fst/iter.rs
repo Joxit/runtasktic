@@ -43,6 +43,10 @@ impl TaskIter {
     }
   }
 
+  pub fn set_done(&mut self, state: usize) {
+    self.states[state] = TaskStatus::Done;
+  }
+
   pub fn n_in_progress(&self) -> i64 {
     self
       .states

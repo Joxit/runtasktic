@@ -13,6 +13,11 @@ pub struct Run {
   /// Configurations path (YAML)
   #[structopt()]
   config: Vec<PathBuf>,
+  /// Override the starting task if the job had already been started before.
+  /// When using many configuration files, start states must be in the first configuration file.
+  /// Can be many task ids with comma separated values.
+  #[structopt(long = "starts", short = "s")]
+  starts: Option<String>,
   /// Run the task in background
   #[structopt(long = "background", short = "b")]
   background: bool,
@@ -35,15 +40,24 @@ impl Run {
       unsafe { signal(SIGHUP, SIG_IGN) };
     }
 
-    for config in &self.config {
-      if let Err(e) = self.run(&config.as_path()) {
+    let starts: Vec<String> = if let Some(starts) = &self.starts {
+      starts
+        .split(",")
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>()
+    } else {
+      vec![]
+    };
+    for (i, config) in self.config.iter().enumerate() {
+      let starts = if i == 0 { starts.clone() } else { vec![] };
+      if let Err(e) = self.run(&config.as_path(), &starts) {
         eprintln!("{}", e);
         exit(1);
       }
     }
   }
 
-  fn run(&self, config: &Path) -> Result<(), String> {
+  fn run(&self, config: &Path, starts: &Vec<String>) -> Result<(), String> {
     let yaml =
       fs::read_to_string(config).map_err(|msg| format!("Can't read the config file: {}", msg))?;
 
@@ -56,7 +70,9 @@ impl Run {
     }
 
     for task in config.tasks().values() {
-      if task.depends_on().len() == 0 {
+      if (task.depends_on().len() == 0 && starts.len() == 0)
+        || (starts.len() > 0 && starts.contains(task.id()))
+      {
         graph.add_start_state(task.state());
       } else {
         for prev in task.depends_on().iter() {
@@ -81,6 +97,16 @@ impl Run {
     let mut exit_failure = 0;
     let mut ask_for_exit = false;
     let graph_iter = &mut graph.iter();
+
+    if starts.len() != 0 {
+      graph
+        .reachable_states()
+        .iter()
+        .enumerate()
+        .filter(|(_, reachable)| !*reachable)
+        .for_each(|(state, _)| graph_iter.set_done(state));
+    }
+
     loop {
       if graph_iter.has_next()
         && (graph_iter.n_in_progress() < config.concurrency() || config.concurrency() < 0)
