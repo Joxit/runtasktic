@@ -12,6 +12,9 @@ pub struct Exec {
   /// Configuration path (YAML)
   #[structopt(long = "config", short = "c")]
   config: Option<PathBuf>,
+  /// Run a single task from the configuration file.
+  #[structopt(long = "task", short = "t", requires = "config")]
+  task: Option<String>,
   /// Exec the command in background
   #[structopt(long = "background", short = "b")]
   background: bool,
@@ -29,7 +32,7 @@ impl Exec {
       }
     }
 
-    if self.command.is_empty() {
+    if self.command.is_empty() && self.task.is_none() {
       let clap = crate::ApplicationArguments::clap();
       let args = format!("{} exec --help", clap.get_name());
       clap.get_matches_from(args.split(" "));
@@ -50,17 +53,33 @@ impl Exec {
   }
 
   fn run(&self) -> Result<(), String> {
-    let config = if let Some(config) = &self.config {
-      let yaml = fs::read_to_string(config.as_path())
+    let (config, path) = if let Some(path) = &self.config {
+      let yaml = fs::read_to_string(path.as_path())
         .map_err(|msg| format!("Can't read the config file: {}", msg))?;
 
-      Config::from_str(yaml.as_str())
-        .map_err(|msg| format!("Can't process the config file: {}", msg))?
+      let config = Config::from_str(yaml.as_str())
+        .map_err(|msg| format!("Can't process the config file: {}", msg))?;
+
+      (config, format!("{}", path.display()))
     } else {
-      Config::default()
+      (Config::default(), format!("<No Config File Path>"))
     };
 
-    let cmd_line = self.command.join(" ");
+    let cmd_line = if let Some(task) = &self.task {
+      config
+        .tasks()
+        .get(task)
+        .ok_or(format!(
+          "The task `{}` does not exist in your config file `{}`",
+          task, path
+        ))?
+        .commands()
+        .join(" && ")
+    } else {
+      self.command.join(" ")
+    };
+
+    let first_cmd = cmd_line.splitn(2, " ").next().unwrap();
 
     let mut child = Command::new("sh")
       .arg("-c")
@@ -73,13 +92,10 @@ impl Exec {
       .map_err(|msg| format!("Can't run command `{}`: {}", cmd_line, msg))?;
 
     if let Ok(exit) = child.wait() {
-      let msg = format!(
-        "Command `{}` ended with status code {}",
-        self.command[0], exit
-      );
+      let msg = format!("Command `{}` ended with status code {}", &first_cmd, exit);
       self.notify(&config, msg, WhenNotify::End);
     } else {
-      let msg = format!("Command `{}` ended with failure", self.command[0]);
+      let msg = format!("Command `{}` ended with failure", &first_cmd);
       self.notify(&config, msg, WhenNotify::End);
     }
 
