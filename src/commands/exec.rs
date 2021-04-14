@@ -33,7 +33,7 @@ impl Exec {
     }
 
     if self.command.is_empty() && self.task.is_none() {
-      let clap = crate::ApplicationArguments::clap();
+      let clap = crate::Runtasktic::clap();
       let args = format!("{} exec --help", clap.get_name());
       clap.get_matches_from(args.split(" "));
     }

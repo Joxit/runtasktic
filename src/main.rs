@@ -9,13 +9,13 @@ mod utils;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "runtasktic", author, about)]
-pub struct ApplicationArguments {
+pub struct Runtasktic {
   #[structopt(subcommand)]
   pub command: Command,
 }
 
 fn main() {
-  let opt = ApplicationArguments::from_args();
+  let opt = Runtasktic::from_args();
 
   opt.command.exec();
 }

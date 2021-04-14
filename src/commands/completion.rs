@@ -1,4 +1,4 @@
-use crate::ApplicationArguments;
+use crate::Runtasktic;
 use structopt::clap::Shell;
 use structopt::StructOpt;
 
@@ -27,6 +27,6 @@ impl Completion {
       Completion::Zsh => Shell::Zsh,
       Completion::Elvish => Shell::Elvish,
     };
-    ApplicationArguments::clap().gen_completions_to("runtasktic", shell, &mut std::io::stdout());
+    Runtasktic::clap().gen_completions_to("runtasktic", shell, &mut std::io::stdout());
   }
 }
