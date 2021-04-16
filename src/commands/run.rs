@@ -16,8 +16,8 @@ pub struct Run {
   /// Override the starting task if the job had already been started before.
   /// When using many configuration files, start states must be in the first configuration file.
   /// Can be many task ids with comma separated values.
-  #[structopt(long = "starts", short = "s")]
-  starts: Option<String>,
+  #[structopt(long = "start", short = "s", number_of_values = 1)]
+  starts: Vec<String>,
   /// Run the task in background
   #[structopt(long = "background", short = "b")]
   background: bool,
@@ -40,16 +40,8 @@ impl Run {
       unsafe { signal(SIGHUP, SIG_IGN) };
     }
 
-    let starts: Vec<String> = if let Some(starts) = &self.starts {
-      starts
-        .split(",")
-        .map(|s| s.to_string())
-        .collect::<Vec<String>>()
-    } else {
-      vec![]
-    };
     for (i, config) in self.config.iter().enumerate() {
-      let starts = if i == 0 { starts.clone() } else { vec![] };
+      let starts = if i == 0 { self.starts.clone() } else { vec![] };
       if let Err(e) = self.run(&config.as_path(), &starts) {
         eprintln!("{}", e);
         exit(1);

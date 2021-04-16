@@ -1,13 +1,13 @@
+use crate::commands::completion::Completion;
 use crate::commands::dot::Dot;
 use crate::commands::exec::Exec;
 use crate::commands::run::Run;
-use crate::commands::completion::Completion;
 use structopt::StructOpt;
 
+mod completion;
 mod dot;
 mod exec;
 mod run;
-mod completion;
 
 #[derive(Debug, StructOpt)]
 pub enum Command {
