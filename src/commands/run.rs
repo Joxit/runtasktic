@@ -32,6 +32,12 @@ impl Run {
       }
     }
 
+    if self.config.is_empty() {
+      let clap = crate::Runtasktic::clap();
+      let args = format!("{} run --help", clap.get_name());
+      clap.get_matches_from(args.split(" "));
+    }
+
     if self.background && unsafe { fork() } != 0 {
       // The main process should return
       return;

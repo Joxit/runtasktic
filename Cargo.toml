@@ -1,6 +1,6 @@
 [package]
 name = "runtasktic"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Jones Magloire @Joxit"]
 description = "Command-line task management tool for execution of regular long sequential or parallel tasks."
 edition = "2018"
@@ -17,6 +17,6 @@ structopt = "^0.3"
 yaml-rust = "^0.4"
 linked-hash-map = "^0.5"
 libc = "^0.2"
-attohttpc = "^0.15"
+attohttpc = "^0.17"
 openssl = { version = "^0.10", features = ["vendored"] }
 json = "^0.12"
