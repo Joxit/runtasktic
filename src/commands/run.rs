@@ -55,12 +55,19 @@ impl Run {
     }
   }
 
-  fn run(&self, config: &Path, starts: &Vec<String>) -> Result<(), String> {
-    let yaml =
-      fs::read_to_string(config).map_err(|msg| format!("Can't read the config file: {}", msg))?;
+  fn run(&self, config_path: &Path, starts: &Vec<String>) -> Result<(), String> {
+    let yaml = fs::read_to_string(config_path)
+      .map_err(|msg| format!("Can't read the config file: {}", msg))?;
 
     let mut config = Config::from_str(yaml.as_str())
       .map_err(|msg| format!("Can't process the config file: {}", msg))?;
+
+    if config.tasks().is_empty() {
+      return Err(format!(
+        "Need at least one task in the config file to run: `{}`",
+        config_path.display()
+      ));
+    }
 
     let mut graph = TaskFst::new();
     for task in config.tasks_values_mut() {

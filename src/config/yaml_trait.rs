@@ -58,7 +58,7 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
         return Ok(result);
       }
     }
-    Err(String::from("Tasks not found"))
+    Ok(HashMap::new())
   }
 
   fn get_commands(&self) -> Vec<String> {
@@ -253,6 +253,21 @@ impl YamlTasksScheduler for Yaml {
 mod test {
   use super::*;
   use yaml_rust::YamlLoader;
+
+  #[test]
+  pub fn get_no_tasks() {
+    let yaml = YamlLoader::load_from_str(
+      "
+    notifications:
+      slack: none
+    ",
+    )
+    .unwrap();
+    let yaml = yaml.first().unwrap();
+    let expected: HashMap<String, Task> = HashMap::new();
+
+    assert_eq!(yaml.get_tasks(), Ok(expected));
+  }
 
   #[test]
   pub fn get_tasks_single_empty_task() {
