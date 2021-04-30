@@ -20,3 +20,4 @@ libc = "^0.2"
 attohttpc = "^0.17"
 openssl = { version = "^0.10", features = ["vendored"] }
 json = "^0.12"
+hostname = "^0.3"
