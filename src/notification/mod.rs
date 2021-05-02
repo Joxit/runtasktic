@@ -4,8 +4,8 @@ use regex::Regex;
 use std::env::var as get_env;
 mod slack;
 
-const HOSTNAME_TEMPLATE: &str = "{{HOSTNAME}}";
-const ENVIRONMENT_TEMPLATE: &str = "\\{\\{env.(?P<key>[a-zA-Z0-9_]+)\\}\\}";
+const HOSTNAME_TEMPLATE: &str = "{hostname}";
+const ENVIRONMENT_TEMPLATE: &str = "\\{env.(?P<key>[a-zA-Z0-9_]+)\\}";
 
 pub fn replace_templates<S: AsRef<str>>(message: S) -> String {
   let msg = replace_hostname(message);
@@ -35,7 +35,7 @@ fn replace_environments<S: AsRef<str>>(message: S) -> String {
         format!("")
       };
 
-      m.replace(&format!("{{{{env.{}}}}}", key), &value)
+      m.replace(&format!("{{env.{}}}", key), &value)
     })
 }
 
@@ -65,8 +65,8 @@ mod test {
       None
     );
     assert_eq!(
-      super::replace_hostname("{HOSTNAME}"),
-      "{HOSTNAME}".to_string()
+      super::replace_hostname("hostname"),
+      "hostname".to_string()
     );
   }
 
@@ -79,23 +79,23 @@ mod test {
     remove_env("RUNTASKTIK_undefined");
 
     assert_eq!(
-      super::replace_environments("Test for {{env.RUNTASKTIK}}"),
+      super::replace_environments("Test for {env.RUNTASKTIK}"),
       "Test for value for RUNTASKTIK environment".to_string()
     );
     assert_eq!(
-      super::replace_environments("{{env.RUNTASKTIK_test}}"),
+      super::replace_environments("{env.RUNTASKTIK_test}"),
       "RUNTASKTIK_test value".to_string()
     );
     assert_eq!(
-      super::replace_environments("Test for {{env.RUNTASKTIK_empty}}"),
+      super::replace_environments("Test for {env.RUNTASKTIK_empty}"),
       "Test for ".to_string()
     );
     assert_eq!(
-      super::replace_environments("{{env.RUNTASKTIK_with_number_0_1_2}}"),
+      super::replace_environments("{env.RUNTASKTIK_with_number_0_1_2}"),
       "0 1 2 3 4".to_string()
     );
     assert_eq!(
-      super::replace_environments("{{env.RUNTASKTIK_undefined}}"),
+      super::replace_environments("{env.RUNTASKTIK_undefined}"),
       "".to_string()
     );
   }
