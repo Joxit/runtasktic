@@ -21,6 +21,7 @@ pub struct Config {
 pub struct Notification {
   slack: Option<Slack>,
   when: WhenNotify,
+  messages: Messages,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -44,6 +45,13 @@ pub enum WhenNotify {
 pub enum OnFailure {
   Continue,
   Exit,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Messages {
+  task_end: String,
+  all_tasks_end: String,
+  task_failed: String,
 }
 
 impl Config {
@@ -98,8 +106,12 @@ impl Config {
 }
 
 impl Notification {
-  pub fn new(slack: Option<Slack>, when: WhenNotify) -> Notification {
-    Notification { slack, when }
+  pub fn new(slack: Option<Slack>, when: WhenNotify, messages: Messages) -> Notification {
+    Notification {
+      slack,
+      when,
+      messages,
+    }
   }
 
   pub fn slack(&self) -> &Option<Slack> {
@@ -152,5 +164,37 @@ impl Slack {
 impl Default for OnFailure {
   fn default() -> OnFailure {
     OnFailure::Continue
+  }
+}
+
+impl Messages {
+  fn new(task_end: String, all_tasks_end: String, task_failed: String) -> Self {
+    Self {
+      task_end,
+      all_tasks_end,
+      task_failed,
+    }
+  }
+
+  pub fn task_end(&self) -> &String {
+    &self.task_end
+  }
+  
+  pub fn all_tasks_end(&self) -> &String {
+    &self.all_tasks_end
+  }
+
+  pub fn task_failed(&self) -> &String {
+    &self.task_failed
+  }
+}
+
+impl Default for Messages {
+  fn default() -> Self {
+    Self {
+      task_end: String::from("Task {task.short_cmd} ended with status code {task.status_code}"),
+      all_tasks_end: String::from("All tasks ended. Got {resume.success} success and {resume.failures} failure."),
+      task_failed: String::from("Tasks ended prematurely. Got {resume.success} success and {resume.failures} failure. Contains one critical failure."),
+    }
   }
 }

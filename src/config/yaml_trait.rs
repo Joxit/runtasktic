@@ -18,6 +18,10 @@ const WORKING_DIR_KEY: &str = "working_dir";
 const STDOUT_KEY: &str = "stdout";
 const STDERR_KEY: &str = "stderr";
 const ON_FAILURE_KEY: &str = "on_failure";
+const MESSAGES_KEY: &str = "messages";
+const MESSAGES_TASK_END: &str = "task_end";
+const MESSAGES_ALL_TASKS_END: &str = "all_tasks_end";
+const MESSAGES_TASK_FAILED: &str = "task_failed";
 
 pub trait YamlTasksScheduler {
   fn get_tasks(&self) -> Result<HashMap<String, Task>, String>;
@@ -29,6 +33,7 @@ pub trait YamlTasksScheduler {
   fn get_string(&self, key: &str) -> Result<Option<String>, String>;
   fn get_when_notify(&self) -> Result<Option<WhenNotify>, String>;
   fn get_on_failure(&self) -> Result<Option<OnFailure>, String>;
+  fn get_messages(&self) -> Result<Messages, String>;
   fn get_working_dir(&self) -> Result<Option<String>, String> {
     self.get_string(WORKING_DIR_KEY)
   }
@@ -110,6 +115,7 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
       return Ok(Some(Notification::new(
         notification.get_slack()?,
         notification.get_when_notify()?.unwrap_or(WhenNotify::End),
+        notification.get_messages()?,
       )));
     }
     Ok(None)
@@ -172,6 +178,25 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
       }
     } else {
       Ok(None)
+    }
+  }
+
+  fn get_messages(&self) -> Result<Messages, String> {
+    let default = Messages::default();
+    if let Some(messages) = self.get(&Yaml::String(String::from(MESSAGES_KEY))) {
+      Ok(Messages::new(
+        messages
+          .get_string(MESSAGES_TASK_END)?
+          .ok_or(default.task_end())?,
+        messages
+          .get_string(MESSAGES_ALL_TASKS_END)?
+          .ok_or(default.all_tasks_end())?,
+        messages
+          .get_string(MESSAGES_TASK_FAILED)?
+          .ok_or(default.task_failed())?,
+      ))
+    } else {
+      Ok(default)
     }
   }
 }
@@ -245,6 +270,14 @@ impl YamlTasksScheduler for Yaml {
       on_failure.get_on_failure()
     } else {
       Ok(None)
+    }
+  }
+
+  fn get_messages(&self) -> Result<Messages, String> {
+    if let Some(messages) = self.as_hash() {
+      messages.get_messages()
+    } else {
+      Ok(Messages::default())
     }
   }
 }
