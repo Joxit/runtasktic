@@ -150,8 +150,9 @@ impl Run {
               graph_iter.mark_done(id);
               processes[id] = None;
 
-              let msg = format!("Task {} ended with status code {}", label, exit);
-              self.notify(&config, msg, WhenNotify::TaskEnd);
+              if let Some(notification) = config.notification() {
+                notification.notify_task_end(config.tasks().get(&label).unwrap(), exit);
+              }
               let on_failure = config.tasks().get(&label).unwrap().on_failure().as_ref();
 
               if is_failure && on_failure.unwrap_or(config.on_failure()) == &OnFailure::Exit {

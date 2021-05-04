@@ -121,6 +121,29 @@ impl Notification {
   pub fn when(&self) -> &WhenNotify {
     &self.when
   }
+
+  pub fn messages(&self) -> &Messages {
+    &self.messages
+  }
+
+  pub fn notify_task_end(&self, task: &Task, status_code: std::process::ExitStatus) {
+    if !self.when.should_notify(&WhenNotify::TaskEnd) {
+      return;
+    }
+    if let Some(slack) = self.slack() {
+      if let Some(when) = slack.when() {
+        if !when.should_notify(&WhenNotify::TaskEnd) {
+          return;
+        }
+      }
+      let msg = crate::notification::replace_templates(self.messages().task_end());
+      let msg = msg.replace("{task.id}", task.id());
+      let msg = msg.replace("{task.status_code}", &format!("{}", status_code));
+      if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
+        eprintln!("Can't use slack notification: {}", e);
+      }
+    }
+  }
 }
 
 impl Slack {
@@ -167,6 +190,12 @@ impl Default for OnFailure {
   }
 }
 
+impl WhenNotify {
+  pub fn should_notify(&self, when: &WhenNotify) -> bool {
+    self != &WhenNotify::Never && (self == &WhenNotify::Always || self == when)
+  }
+}
+
 impl Messages {
   fn new(task_end: String, all_tasks_end: String, task_failed: String) -> Self {
     Self {
@@ -179,7 +208,7 @@ impl Messages {
   pub fn task_end(&self) -> &String {
     &self.task_end
   }
-  
+
   pub fn all_tasks_end(&self) -> &String {
     &self.all_tasks_end
   }
@@ -192,7 +221,7 @@ impl Messages {
 impl Default for Messages {
   fn default() -> Self {
     Self {
-      task_end: String::from("Task {task.short_cmd} ended with status code {task.status_code}"),
+      task_end: String::from("Task {task.id} ended with status code {task.status_code}"),
       all_tasks_end: String::from("All tasks ended. Got {resume.success} success and {resume.failures} failure."),
       task_failed: String::from("Tasks ended prematurely. Got {resume.success} success and {resume.failures} failure. Contains one critical failure."),
     }

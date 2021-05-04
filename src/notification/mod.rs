@@ -2,6 +2,7 @@ pub use crate::notification::slack::*;
 use hostname::get as get_hostname;
 use regex::Regex;
 use std::env::var as get_env;
+
 mod slack;
 
 const HOSTNAME_TEMPLATE: &str = "{hostname}";
@@ -64,10 +65,7 @@ mod test {
       .find(HOSTNAME_TEMPLATE),
       None
     );
-    assert_eq!(
-      super::replace_hostname("hostname"),
-      "hostname".to_string()
-    );
+    assert_eq!(super::replace_hostname("hostname"), "hostname".to_string());
   }
 
   #[test]

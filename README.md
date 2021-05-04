@@ -146,7 +146,7 @@ notification:
     username: runtasktic # the username to use, default is runtasktic.
   when: always # `always`, `task-end`, `end` or `never` when should I send notification
   messages:
-    task_end: Task {task.short_cmd} ended with status code {task.status_code}
+    task_end: Task {task.id} ended with status code {task.status_code}
     all_task_end: All tasks ended. Got {resume.success} success and {resume.failures} failure.
     task_failed: Tasks ended prematurely. Got {resume.success} success and {resume.failures} failure. Contains one critical failure.
 

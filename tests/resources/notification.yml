@@ -36,6 +36,6 @@ notification:
     username: runtasktic
   when: always
   messages:
-    task_end: Task {task.short_cmd} ended with status code {task.status_code}
+    task_end: Task {task.id} ended with status code {task.status_code}
     all_tasks_end: All tasks ended. Got {resume.success} success and {resume.failures} failure.
     task_failed: Tasks ended prematurely. Got {resume.success} success and {resume.failures} failure. Contains one critical failure.
