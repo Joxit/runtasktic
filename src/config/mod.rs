@@ -144,6 +144,30 @@ impl Notification {
       }
     }
   }
+
+  pub fn notify_all_tasks_end(&self, success: i32, failures: i32, failed: bool) {
+    if !self.when.should_notify(&WhenNotify::End) {
+      return;
+    }
+    if let Some(slack) = self.slack() {
+      if let Some(when) = slack.when() {
+        if !when.should_notify(&WhenNotify::End) {
+          return;
+        }
+      }
+      let msg = if !failed {
+        self.messages().all_tasks_end()
+      } else {
+        self.messages().task_failed()
+      };
+      let msg = crate::notification::replace_templates(msg);
+      let msg = msg.replace("{resume.success}", &format!("{}", success));
+      let msg = msg.replace("{resume.failures}", &format!("{}", failures));
+      if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
+        eprintln!("Can't use slack notification: {}", e);
+      }
+    }
+  }
 }
 
 impl Slack {

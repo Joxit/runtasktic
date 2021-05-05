@@ -1,4 +1,4 @@
-use crate::config::{Config, OnFailure, WhenNotify};
+use crate::config::{Config, OnFailure};
 use crate::fst::*;
 use crate::utils::traits::CommandConfig;
 use libc::{fork, signal};
@@ -170,41 +170,11 @@ impl Run {
       }
     }
 
-    let msg = format!(
-      "All tasks ended. Got {} success and {} failure.{}",
-      exit_success,
-      exit_failure,
-      if ask_for_exit {
-        " Contains one critical failure."
-      } else {
-        ""
-      }
-    );
-    self.notify(&config, msg, WhenNotify::End);
+    if let Some(notification) = config.notification() {
+      notification.notify_all_tasks_end(exit_success, exit_failure, ask_for_exit);
+    }
 
     Ok(())
-  }
-
-  fn notify(&self, config: &Config, msg: String, when: WhenNotify) {
-    if let Some(notification) = config.notification() {
-      if *notification.when() == WhenNotify::Never
-        || (*notification.when() != WhenNotify::Always && *notification.when() != when)
-      {
-        return;
-      }
-      if let Some(slack) = notification.slack() {
-        if let Some(when_slack) = slack.when() {
-          if *when_slack == WhenNotify::Never
-            || (*when_slack != WhenNotify::Always && *when_slack != when)
-          {
-            return;
-          }
-        }
-        if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
-          eprintln!("Can't use slac notification: {}", e);
-        }
-      }
-    }
   }
 
   fn stdin(&self) -> Stdio {
