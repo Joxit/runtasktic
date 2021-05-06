@@ -138,6 +138,8 @@ impl Notification {
       }
       let msg = crate::notification::replace_templates(self.messages().task_end());
       let msg = msg.replace("{task.id}", task.id());
+      let msg = msg.replace("{task.full_cmd}", &task.full_command());
+      let msg = msg.replace("{task.short_cmd}", &task.short_command());
       let msg = msg.replace("{task.status_code}", &format!("{}", status_code));
       if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
         eprintln!("Can't use slack notification: {}", e);

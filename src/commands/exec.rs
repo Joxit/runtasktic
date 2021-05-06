@@ -73,8 +73,7 @@ impl Exec {
           "The task `{}` does not exist in your config file `{}`",
           task, path
         ))?
-        .commands()
-        .join(" && ")
+        .full_command()
     } else {
       self.command.join(" ")
     };

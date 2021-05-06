@@ -119,7 +119,7 @@ impl Run {
       {
         let task = graph_iter.next().unwrap();
         let label = task.label().to_string();
-        let cmd_line = config.tasks().get(&label).unwrap().commands().join(" && ");
+        let cmd_line = config.tasks().get(&label).unwrap().full_command();
         let child = Command::new("sh")
           .arg("-c")
           .arg(cmd_line.to_string())

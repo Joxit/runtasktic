@@ -31,6 +31,13 @@ impl Task {
   pub fn commands(&self) -> &Vec<String> {
     &self.commands
   }
+  pub fn full_command(&self) -> String {
+    self.commands().join(" && ")
+  }
+  pub fn short_command(&self) -> String {
+    let cmd = self.commands().first().unwrap_or(&format!(""));
+    cmd.splitn(2, " ").next().unwrap().to_string()
+  }
   pub fn depends_on(&self) -> &Vec<String> {
     &self.depends_on
   }
