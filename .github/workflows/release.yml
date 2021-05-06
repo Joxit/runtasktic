@@ -22,10 +22,10 @@ jobs:
       env:
         CRATE_IO_ACCESS_TOKEN: ${{ secrets.CRATE_IO_ACCESS_TOKEN }}
       run: cargo publish --token $CRATE_IO_ACCESS_TOKEN
-    - name: Download kokai
-      run: curl -sSL https://github.com/Joxit/kokai/releases/download/$(curl -sSL https://api.github.com/repos/Joxit/kokai/releases/latest | jq -r ".tag_name")/kokai-linux-x86_64 > kokai
+    - name: Install kokai
+      run: cargo install kokai
     - name: Create Release Note
-      run: chmod +x kokai && ./kokai release --ref ${{ github.ref }} --tag-from-ref . > RELEASE_NOTE.md
+      run: kokai release --ref ${{ github.ref }} --tag-from-ref . > RELEASE_NOTE.md
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
