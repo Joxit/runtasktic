@@ -1,4 +1,4 @@
-use crate::config::{Config, WhenNotify};
+use crate::config::Config;
 use crate::utils::traits::CommandConfig;
 use libc::{fork, signal};
 use libc::{SIGHUP, SIG_IGN};
@@ -65,7 +65,7 @@ impl Exec {
       (Config::default(), format!("<No Config File Path>"))
     };
 
-    let cmd_line = if let Some(task) = &self.task {
+    let task = if let Some(task) = &self.task {
       config
         .tasks()
         .get(task)
@@ -73,16 +73,15 @@ impl Exec {
           "The task `{}` does not exist in your config file `{}`",
           task, path
         ))?
-        .full_command()
+        .clone()
     } else {
-      self.command.join(" ")
+      crate::config::Task::new(format!(""), vec![self.command.join(" ")], vec![], None)
     };
-
-    let first_cmd = cmd_line.splitn(2, " ").next().unwrap();
+    let cmd_line = task.full_command();
 
     let mut child = Command::new("sh")
       .arg("-c")
-      .arg(cmd_line.clone())
+      .arg(&cmd_line)
       .stdin(self.stdin())
       .stdout_opt(config.stdout(), !self.background)?
       .stderr_opt(config.stderr(), !self.background)?
@@ -90,37 +89,12 @@ impl Exec {
       .spawn()
       .map_err(|msg| format!("Can't run command `{}`: {}", cmd_line, msg))?;
 
-    if let Ok(exit) = child.wait() {
-      let msg = format!("Command `{}` ended with status code {}", &first_cmd, exit);
-      self.notify(&config, msg, WhenNotify::End);
-    } else {
-      let msg = format!("Command `{}` ended with failure", &first_cmd);
-      self.notify(&config, msg, WhenNotify::End);
+    let exit = child.wait().unwrap();
+    if let Some(notification) = config.notification() {
+      notification.notify_task_end(&task, exit);
     }
 
     Ok(())
-  }
-
-  fn notify(&self, config: &Config, msg: String, when: WhenNotify) {
-    if let Some(notification) = config.notification() {
-      if *notification.when() == WhenNotify::Never
-        || (*notification.when() != WhenNotify::Always && *notification.when() != when)
-      {
-        return;
-      }
-      if let Some(slack) = notification.slack() {
-        if let Some(when_slack) = slack.when() {
-          if *when_slack == WhenNotify::Never
-            || (*when_slack != WhenNotify::Always && *when_slack != when)
-          {
-            return;
-          }
-        }
-        if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
-          eprintln!("Can't use slac notification: {}", e);
-        }
-      }
-    }
   }
 
   fn stdin(&self) -> Stdio {

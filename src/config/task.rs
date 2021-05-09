@@ -35,8 +35,12 @@ impl Task {
     self.commands().join(" && ")
   }
   pub fn short_command(&self) -> String {
-    let cmd = self.commands().first().unwrap_or(&format!(""));
-    cmd.splitn(2, " ").next().unwrap().to_string()
+    if self.commands().len() > 0 {
+      let cmd = self.commands().first().unwrap();
+      cmd.splitn(2, " ").next().unwrap().to_string()
+    } else {
+      format!("<unknonw short command>")
+    }
   }
   pub fn depends_on(&self) -> &Vec<String> {
     &self.depends_on

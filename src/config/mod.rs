@@ -127,7 +127,7 @@ impl Notification {
   }
 
   pub fn notify_task_end(&self, task: &Task, status_code: std::process::ExitStatus) {
-    if !self.when.should_notify(&WhenNotify::TaskEnd) {
+    if !self.when().should_notify(&WhenNotify::TaskEnd) {
       return;
     }
     if let Some(slack) = self.slack() {
@@ -136,10 +136,16 @@ impl Notification {
           return;
         }
       }
+      let short_cmd = task.short_command();
+      let id = if task.id().len() > 0 {
+        task.id()
+      } else {
+        &short_cmd
+      };
       let msg = crate::notification::replace_templates(self.messages().task_end());
-      let msg = msg.replace("{task.id}", task.id());
+      let msg = msg.replace("{task.id}", id);
       let msg = msg.replace("{task.full_cmd}", &task.full_command());
-      let msg = msg.replace("{task.short_cmd}", &task.short_command());
+      let msg = msg.replace("{task.short_cmd}", &short_cmd);
       let msg = msg.replace("{task.status_code}", &format!("{}", status_code));
       if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
         eprintln!("Can't use slack notification: {}", e);
@@ -148,7 +154,7 @@ impl Notification {
   }
 
   pub fn notify_all_tasks_end(&self, success: i32, failures: i32, failed: bool) {
-    if !self.when.should_notify(&WhenNotify::End) {
+    if !self.when().should_notify(&WhenNotify::End) {
       return;
     }
     if let Some(slack) = self.slack() {
