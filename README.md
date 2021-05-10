@@ -146,9 +146,9 @@ notification:
     username: runtasktic # the username to use, default is runtasktic.
   when: always # `always`, `task-end`, `end` or `never` when should I send notification
   messages:
-    task_end: Task {task.id} ended with status code {task.status_code}
-    all_task_end: All tasks ended. Got {resume.success} success and {resume.failures} failure.
-    task_failed: Tasks ended prematurely. Got {resume.success} success and {resume.failures} failure. Contains one critical failure.
+    task_end: Task {task.id} ended with status code {task.status_code} # Availables templates are {task.id}, {task.short_cmd}, {task.full_cmd}, {task.status_code}, {hostname}, {env.*} for environment variables 
+    all_task_end: All tasks ended. Got {resume.success} success and {resume.failures} failure. # Availables templates are {resulme.success}, {resume.failures}, {hostname}, {env.*} for environment variables
+    task_failed: Tasks ended prematurely. Got {resume.success} success and {resume.failures} failure. Contains one critical failure. # Availables templates are {resulme.success}, {resume.failures}, {hostname}, {env.*} for environment variables. Triggered when `on_failure: exit` is used.
 
 concurrency: 2 # how many task can run simultaneously
 working_dir: /custom/directory # Where is the workind directory, default is where your are using runtasktic
