@@ -22,3 +22,4 @@ openssl = { version = "^0.10", features = ["vendored"] }
 json = "^0.12"
 hostname = "^0.3"
 regex = "^1.3"
+chrono = "^0.4"

@@ -20,6 +20,7 @@ pub struct Config {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Notification {
   slack: Option<Slack>,
+  print: Option<Print>,
   when: WhenNotify,
   messages: Messages,
 }
@@ -30,6 +31,12 @@ pub struct Slack {
   channel: String,
   emoji: Option<String>,
   username: Option<String>,
+  when: Option<WhenNotify>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Print {
+  output: String,
   when: Option<WhenNotify>,
 }
 
@@ -106,9 +113,15 @@ impl Config {
 }
 
 impl Notification {
-  pub fn new(slack: Option<Slack>, when: WhenNotify, messages: Messages) -> Notification {
+  pub fn new(
+    slack: Option<Slack>,
+    print: Option<Print>,
+    when: WhenNotify,
+    messages: Messages,
+  ) -> Notification {
     Notification {
       slack,
+      print,
       when,
       messages,
     }
@@ -116,6 +129,10 @@ impl Notification {
 
   pub fn slack(&self) -> &Option<Slack> {
     &self.slack
+  }
+
+  pub fn print(&self) -> &Option<Print> {
+    &self.print
   }
 
   pub fn when(&self) -> &WhenNotify {
@@ -130,23 +147,36 @@ impl Notification {
     if !self.when().should_notify(&WhenNotify::TaskEnd) {
       return;
     }
+
+    let short_cmd = task.short_command();
+    let id = if task.id().len() > 0 {
+      task.id()
+    } else {
+      &short_cmd
+    };
+    let msg = crate::notification::replace_templates(self.messages().task_end());
+    let msg = msg.replace("{task.id}", id);
+    let msg = msg.replace("{task.full_cmd}", &task.full_command());
+    let msg = msg.replace("{task.short_cmd}", &short_cmd);
+    let msg = msg.replace("{task.status_code}", &format!("{}", status_code));
+
+    if let Some(print) = self.print() {
+      if let Some(when) = print.when() {
+        if !when.should_notify(&WhenNotify::TaskEnd) {
+          return;
+        }
+      }
+      if let Err(e) = crate::notification::notification_print(&print, msg.as_str()) {
+        eprintln!("Can't use print notification: {}", e);
+      }
+    }
+
     if let Some(slack) = self.slack() {
       if let Some(when) = slack.when() {
         if !when.should_notify(&WhenNotify::TaskEnd) {
           return;
         }
       }
-      let short_cmd = task.short_command();
-      let id = if task.id().len() > 0 {
-        task.id()
-      } else {
-        &short_cmd
-      };
-      let msg = crate::notification::replace_templates(self.messages().task_end());
-      let msg = msg.replace("{task.id}", id);
-      let msg = msg.replace("{task.full_cmd}", &task.full_command());
-      let msg = msg.replace("{task.short_cmd}", &short_cmd);
-      let msg = msg.replace("{task.status_code}", &format!("{}", status_code));
       if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
         eprintln!("Can't use slack notification: {}", e);
       }
@@ -157,20 +187,32 @@ impl Notification {
     if !self.when().should_notify(&WhenNotify::End) {
       return;
     }
+    let msg = if !failed {
+      self.messages().all_tasks_end()
+    } else {
+      self.messages().task_failed()
+    };
+    let msg = crate::notification::replace_templates(msg);
+    let msg = msg.replace("{resume.success}", &format!("{}", success));
+    let msg = msg.replace("{resume.failures}", &format!("{}", failures));
+
+    if let Some(print) = self.print() {
+      if let Some(when) = print.when() {
+        if !when.should_notify(&WhenNotify::End) {
+          return;
+        }
+      }
+      if let Err(e) = crate::notification::notification_print(&print, msg.as_str()) {
+        eprintln!("Can't use print notification: {}", e);
+      }
+    }
+
     if let Some(slack) = self.slack() {
       if let Some(when) = slack.when() {
         if !when.should_notify(&WhenNotify::End) {
           return;
         }
       }
-      let msg = if !failed {
-        self.messages().all_tasks_end()
-      } else {
-        self.messages().task_failed()
-      };
-      let msg = crate::notification::replace_templates(msg);
-      let msg = msg.replace("{resume.success}", &format!("{}", success));
-      let msg = msg.replace("{resume.failures}", &format!("{}", failures));
       if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
         eprintln!("Can't use slack notification: {}", e);
       }
@@ -209,6 +251,20 @@ impl Slack {
 
   pub fn username(&self) -> &Option<String> {
     &self.username
+  }
+
+  pub fn when(&self) -> &Option<WhenNotify> {
+    &self.when
+  }
+}
+
+impl Print {
+  pub fn new(output: String, when: Option<WhenNotify>) -> Self {
+    Self { output, when }
+  }
+
+  pub fn output(&self) -> &String {
+    &self.output
   }
 
   pub fn when(&self) -> &Option<WhenNotify> {

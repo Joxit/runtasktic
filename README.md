@@ -144,6 +144,8 @@ notification:
     channel: '#channel' # channel to send message
     emoji: ':rocket:' # emoji to use (optional)
     username: runtasktic # the username to use, default is runtasktic.
+  print:
+    output: stderr # print notification on `stdout`, `stedrr`, `none` or `/custom/path`
   when: always # `always`, `task-end`, `end` or `never` when should I send notification
   messages:
     task_end: Task {task.id} ended with status code {task.status_code} # Availables templates are {task.id}, {task.short_cmd}, {task.full_cmd}, {task.status_code}, {hostname}, {env.*} for environment variables 

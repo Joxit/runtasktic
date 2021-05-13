@@ -13,6 +13,8 @@ const URL_KEY: &str = "url";
 const CHANNEL_KEY: &str = "channel";
 const EMOJI_KEY: &str = "emoji";
 const USERNAME_KEY: &str = "username";
+const PRINT_KEY: &str = "print";
+const OUTPUT_KEY: &str = "output";
 const WHEN_KEY: &str = "when";
 const WORKING_DIR_KEY: &str = "working_dir";
 const STDOUT_KEY: &str = "stdout";
@@ -30,6 +32,7 @@ pub trait YamlTasksScheduler {
   fn get_concurrency(&self) -> Result<i64, String>;
   fn get_notification(&self) -> Result<Option<Notification>, String>;
   fn get_slack(&self) -> Result<Option<Slack>, String>;
+  fn get_print(&self) -> Result<Option<Print>, String>;
   fn get_string(&self, key: &str) -> Result<Option<String>, String>;
   fn get_when_notify(&self) -> Result<Option<WhenNotify>, String>;
   fn get_on_failure(&self) -> Result<Option<OnFailure>, String>;
@@ -114,6 +117,7 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
     if let Some(notification) = self.get(&Yaml::String(String::from(NOTIFICATION_KEY))) {
       return Ok(Some(Notification::new(
         notification.get_slack()?,
+        notification.get_print()?,
         notification.get_when_notify()?.unwrap_or(WhenNotify::End),
         notification.get_messages()?,
       )));
@@ -133,6 +137,18 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
         slack.get_string(USERNAME_KEY)?,
         slack.get_string(EMOJI_KEY)?,
         slack.get_when_notify()?,
+      )));
+    }
+    Ok(None)
+  }
+
+  fn get_print(&self) -> Result<Option<Print>, String> {
+    if let Some(print) = self.get(&Yaml::String(String::from(PRINT_KEY))) {
+      return Ok(Some(Print::new(
+        print
+          .get_string(OUTPUT_KEY)?
+          .ok_or(String::from("print output is required!"))?,
+        print.get_when_notify()?,
       )));
     }
     Ok(None)
@@ -244,6 +260,14 @@ impl YamlTasksScheduler for Yaml {
   fn get_slack(&self) -> Result<Option<Slack>, String> {
     if let Some(slack) = self.as_hash() {
       slack.get_slack()
+    } else {
+      Ok(None)
+    }
+  }
+
+  fn get_print(&self) -> Result<Option<Print>, String> {
+    if let Some(print) = self.as_hash() {
+      print.get_print()
     } else {
       Ok(None)
     }

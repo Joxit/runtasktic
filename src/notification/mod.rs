@@ -1,8 +1,10 @@
+pub use crate::notification::print::*;
 pub use crate::notification::slack::*;
 use hostname::get as get_hostname;
 use regex::Regex;
 use std::env::var as get_env;
 
+mod print;
 mod slack;
 
 const HOSTNAME_TEMPLATE: &str = "{hostname}";
