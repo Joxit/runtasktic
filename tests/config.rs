@@ -135,7 +135,13 @@ fn notification_yaml() {
     Some(":rocket:".to_string()),
     None,
   );
-  let notification = Notification::new(Some(slack), None, WhenNotify::Always, Messages::default());
+  let print = Print::new("stderr".to_string(), None);
+  let notification = Notification::new(
+    Some(slack),
+    Some(print),
+    WhenNotify::Always,
+    Messages::default(),
+  );
 
   assert_eq!(*config.notification(), Some(notification));
   assert_eq!(config.concurrency(), -1);
