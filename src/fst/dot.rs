@@ -11,7 +11,7 @@ pub fn dot_write_file<W: Write>(fst: &TaskFst, writer: &mut W) -> std::io::Resul
     let node = iter.next().unwrap();
     let label = node.label.replace("\"", "\\\"");
     let id = format_id(&node.label);
-    let shape = if node.prev.len() == 0 {
+    let shape = if node.next.len() == 0 {
       "doublecircle"
     } else {
       "circle"
@@ -83,16 +83,16 @@ mod test {
     assert_eq!(
       result,
       r#"digraph {
-  a[label="\"a\"" shape=doublecircle]
+  a[label="\"a\"" shape=circle]
   a -> b_a_ba
   a -> c
-  e[label="e" shape=doublecircle]
+  e[label="e" shape=circle]
   e -> ds
   b_a_ba[label="b a ba" shape=circle]
   b_a_ba -> c
   c[label="c" shape=circle]
   c -> ds
-  ds[label="d%s" shape=circle]
+  ds[label="d%s" shape=doublecircle]
 }
 "#
     );
