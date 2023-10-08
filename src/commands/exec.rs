@@ -26,7 +26,7 @@ pub struct Exec {
 impl Exec {
   pub fn exec(&self) {
     if let Some(config) = &self.config {
-      if !config.exists() {
+      if config != &PathBuf::from("-") && !config.exists() {
         eprintln!("The config file {} does not exists", config.display());
         return;
       }
@@ -53,14 +53,12 @@ impl Exec {
   }
 
   fn run(&self) -> Result<(), String> {
-    let (config, path) = if let Some(path) = &self.config {
-      let yaml = fs::read_to_string(path.as_path())
-        .map_err(|msg| format!("Can't read the config file: {}", msg))?;
-
-      let config = Config::from_str(yaml.as_str())
-        .map_err(|msg| format!("Can't process the config file: {}", msg))?;
-
-      (config, format!("{}", path.display()))
+    let (config, path) = if Some(PathBuf::from("-")) == self.config {
+      (Config::default(), format!("-"))
+    } else if let Some(path) = &self.config {
+      self.config_path(path)?
+    } else if let Some(path) = self.default_config_path() {
+      self.config_path(&path)?
     } else {
       (Config::default(), format!("<No Config File Path>"))
     };
@@ -103,5 +101,26 @@ impl Exec {
     } else {
       Stdio::inherit()
     }
+  }
+
+  fn default_config_path(&self) -> Option<PathBuf> {
+    if let Ok(home) = std::env::var("HOME") {
+      vec![".runtasktic.yml", ".runtasktic.yaml"]
+        .iter()
+        .map(|path| PathBuf::from(&home).join(path))
+        .find(|path| path.as_path().exists())
+    } else {
+      None
+    }
+  }
+
+  fn config_path(&self, path: &PathBuf) -> Result<(Config, String), String> {
+    let yaml = fs::read_to_string(path.as_path())
+      .map_err(|msg| format!("Can't read the config file: {}", msg))?;
+
+    let config = Config::from_str(yaml.as_str())
+      .map_err(|msg| format!("Can't process the config file: {}", msg))?;
+
+    Ok((config, format!("{}", path.display())))
   }
 }
