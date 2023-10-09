@@ -1,6 +1,8 @@
 use crate::config::{Config, OnFailure};
 use crate::fst::*;
-use crate::utils::traits::CommandConfig;
+use crate::utils::traits::{CommandConfig, WaitSchedule};
+use chrono::Local;
+use cron::Schedule;
 use libc::{fork, signal};
 use libc::{SIGHUP, SIG_IGN};
 use std::fs;
@@ -21,6 +23,9 @@ pub struct Run {
   /// Run the task in background
   #[structopt(long = "background", short = "b")]
   background: bool,
+  /// Schedule your tasks using cron expression.
+  #[structopt(long = "cron")]
+  cron: Option<Schedule>,
 }
 
 impl Run {
@@ -31,6 +36,7 @@ impl Run {
         exit(1);
       }
     }
+    let timezone = Local::now().timezone();
 
     if self.config.is_empty() {
       let clap = crate::Runtasktic::clap();
@@ -46,11 +52,18 @@ impl Run {
       unsafe { signal(SIGHUP, SIG_IGN) };
     }
 
-    for (i, config) in self.config.iter().enumerate() {
-      let starts = if i == 0 { self.starts.clone() } else { vec![] };
-      if let Err(e) = self.run(&config.as_path(), &starts) {
-        eprintln!("{}", e);
-        exit(1);
+    loop {
+      self.cron.wait(timezone);
+
+      for (i, config) in self.config.iter().enumerate() {
+        let starts = if i == 0 { self.starts.clone() } else { vec![] };
+        if let Err(e) = self.run(&config.as_path(), &starts) {
+          eprintln!("{}", e);
+          exit(1);
+        }
+      }
+      if self.cron.is_none() {
+        break;
       }
     }
   }

@@ -1,5 +1,7 @@
 use crate::config::Config;
-use crate::utils::traits::CommandConfig;
+use crate::utils::traits::{CommandConfig, WaitSchedule};
+use chrono::Local;
+use cron::Schedule;
 use libc::{fork, signal};
 use libc::{SIGHUP, SIG_IGN};
 use std::fs;
@@ -9,7 +11,9 @@ use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 pub struct Exec {
-  /// Configuration path (YAML)
+  /// Configuration path (YAML).
+  /// Will use config file located `~/.runtasktic.yml` or `~/.runtasktic.yaml` by default.
+  /// If you want no config file execusion, use `--config -`
   #[structopt(long = "config", short = "c")]
   config: Option<PathBuf>,
   /// Run a single task from the configuration file.
@@ -18,6 +22,9 @@ pub struct Exec {
   /// Exec the command in background
   #[structopt(long = "background", short = "b")]
   background: bool,
+  /// Schedule your tasks using cron expression.
+  #[structopt(long = "cron")]
+  cron: Option<Schedule>,
   /// Command to execute
   #[structopt()]
   command: Vec<String>,
@@ -31,6 +38,7 @@ impl Exec {
         return;
       }
     }
+    let timezone = Local::now().timezone();
 
     if self.command.is_empty() && self.task.is_none() {
       let clap = crate::Runtasktic::clap();
@@ -46,9 +54,19 @@ impl Exec {
       unsafe { signal(SIGHUP, SIG_IGN) };
     }
 
-    if let Err(e) = self.run() {
-      eprintln!("{}", e);
-      exit(1);
+    loop {
+      self.cron.wait(timezone);
+
+      if let Err(e) = self.run() {
+        eprintln!("{}", e);
+        if self.cron.is_none() {
+          exit(1);
+        }
+      }
+
+      if self.cron.is_none() {
+        break;
+      }
     }
   }
 
