@@ -1,32 +1,32 @@
 use crate::config::Config;
 use crate::utils::traits::{CommandConfig, WaitSchedule};
 use chrono::Local;
+use clap::Parser;
 use cron::Schedule;
 use libc::{fork, signal};
 use libc::{SIGHUP, SIG_IGN};
 use std::fs;
 use std::path::PathBuf;
 use std::process::{exit, Command, Stdio};
-use structopt::StructOpt;
 
-#[derive(Debug, StructOpt)]
+#[derive(Parser, Debug)]
 pub struct Exec {
   /// Configuration path (YAML).
   /// Will use config file located `~/.runtasktic.yml` or `~/.runtasktic.yaml` by default.
   /// If you want no config file execusion, use `--config -`
-  #[structopt(long = "config", short = "c")]
+  #[arg(long = "config", short = 'c')]
   config: Option<PathBuf>,
   /// Run a single task from the configuration file.
-  #[structopt(long = "task", short = "t", requires = "config")]
+  #[arg(long = "task", short = 't', requires = "config")]
   task: Option<String>,
   /// Exec the command in background
-  #[structopt(long = "background", short = "b")]
+  #[arg(long = "background", short = 'b')]
   background: bool,
   /// Schedule your tasks using cron expression.
-  #[structopt(long = "cron")]
+  #[arg(long = "cron")]
   cron: Option<Schedule>,
   /// Command to execute
-  #[structopt()]
+  #[arg()]
   command: Vec<String>,
 }
 
@@ -41,9 +41,7 @@ impl Exec {
     let timezone = Local::now().timezone();
 
     if self.command.is_empty() && self.task.is_none() {
-      let clap = crate::Runtasktic::clap();
-      let args = format!("{} exec --help", clap.get_name());
-      clap.get_matches_from(args.split(" "));
+      crate::Runtasktic::display_help("exec");
     }
 
     if self.background && unsafe { fork() } != 0 {

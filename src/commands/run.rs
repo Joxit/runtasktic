@@ -2,29 +2,29 @@ use crate::config::{Config, OnFailure};
 use crate::fst::*;
 use crate::utils::traits::{CommandConfig, WaitSchedule};
 use chrono::Local;
+use clap::Parser;
 use cron::Schedule;
 use libc::{fork, signal};
 use libc::{SIGHUP, SIG_IGN};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{exit, Command, Stdio};
-use structopt::StructOpt;
 
-#[derive(Debug, StructOpt)]
+#[derive(Parser, Debug)]
 pub struct Run {
   /// Configurations path (YAML)
-  #[structopt()]
+  #[arg()]
   config: Vec<PathBuf>,
   /// Override the starting task if the job had already been started before.
   /// When using many configuration files, start states must be in the first configuration file.
   /// Can be many task ids with comma separated values.
-  #[structopt(long = "start", short = "s", number_of_values = 1)]
+  #[arg(long = "start", short = 's', number_of_values = 1)]
   starts: Vec<String>,
   /// Run the task in background
-  #[structopt(long = "background", short = "b")]
+  #[arg(long = "background", short = 'b')]
   background: bool,
   /// Schedule your tasks using cron expression.
-  #[structopt(long = "cron")]
+  #[arg(long = "cron")]
   cron: Option<Schedule>,
 }
 
@@ -39,9 +39,7 @@ impl Run {
     let timezone = Local::now().timezone();
 
     if self.config.is_empty() {
-      let clap = crate::Runtasktic::clap();
-      let args = format!("{} run --help", clap.get_name());
-      clap.get_matches_from(args.split(" "));
+      crate::Runtasktic::display_help("run");
     }
 
     if self.background && unsafe { fork() } != 0 {

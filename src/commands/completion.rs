@@ -1,21 +1,21 @@
 use crate::Runtasktic;
-use structopt::clap::Shell;
-use structopt::StructOpt;
+use clap::{CommandFactory, Parser};
+use clap_complete::{generate, Shell};
 
-#[derive(Debug, StructOpt)]
+#[derive(Parser, Debug)]
 pub enum Completion {
   /// Generates a .bash completion file for the Bourne Again SHell (BASH).
   /// Save the output in `/etc/bash_completion.d/runtasktic` or `~/.local/share/bash-completion/completions/runtasktic`
-  #[structopt(name = "bash")]
+  #[command(name = "bash")]
   Bash,
   /// Generates a .fish completion file for the Friendly Interactive SHell (fish)
-  #[structopt(name = "fish")]
+  #[command(name = "fish")]
   Fish,
   /// Generates a completion file for the Z SHell (ZSH)
-  #[structopt(name = "zsh")]
+  #[command(name = "zsh")]
   Zsh,
   /// Generates a completion file for Elvish
-  #[structopt(name = "elvish")]
+  #[command(name = "elvish")]
   Elvish,
 }
 
@@ -27,6 +27,8 @@ impl Completion {
       Completion::Zsh => Shell::Zsh,
       Completion::Elvish => Shell::Elvish,
     };
-    Runtasktic::clap().gen_completions_to("runtasktic", shell, &mut std::io::stdout());
+    let mut cli = Runtasktic::command();
+    let bin_name = cli.get_name().to_string();
+    generate(shell, &mut cli, &bin_name, &mut std::io::stdout());
   }
 }

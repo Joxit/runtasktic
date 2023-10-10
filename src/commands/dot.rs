@@ -1,13 +1,13 @@
 use crate::config::Config;
 use crate::fst::dot::*;
 use crate::fst::*;
+use clap::Parser;
 use std::fs;
 use std::io::Cursor;
 use std::path::PathBuf;
 use std::process::exit;
-use structopt::StructOpt;
 
-#[derive(Debug, StructOpt)]
+#[derive(Parser, Debug)]
 pub struct Dot {
   /// Path of the configuration file to visualize.
   #[structopt()]

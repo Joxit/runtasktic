@@ -2,26 +2,30 @@ use crate::commands::completion::Completion;
 use crate::commands::dot::Dot;
 use crate::commands::exec::Exec;
 use crate::commands::run::Run;
-use structopt::StructOpt;
+use clap::Parser;
 
 mod completion;
 mod dot;
 mod exec;
 mod run;
 
-#[derive(Debug, StructOpt)]
+#[derive(Parser, Debug)]
 pub enum Command {
-  /// Run tasks.
-  #[structopt(name = "run")]
+  /// Run all tasks from your configuration in background or foreground.
+  ///
+  /// Set the notification, messages, output files, concurency, working directory and many more options in your configuration.
+  #[command(name = "run")]
   Run(Run),
   /// Export the configuration to a graph (needs graphviz/dot).
-  #[structopt(name = "dot")]
+  #[command(name = "dot")]
   Dot(Dot),
-  /// Execute a single command with notification.
-  #[structopt(name = "exec")]
+  /// Execute a single command with notification in background or foreground.
+  ///
+  /// Inherit the notification from a configuration file and set your default one in your home: `~/.runtasktic.yml` or `~/.runtasktic.yaml`.
+  #[command(name = "exec")]
   Exec(Exec),
   /// Generate completion script for your shell.
-  #[structopt(name = "completion")]
+  #[command(name = "completion", subcommand)]
   Completion(Completion),
 }
 
