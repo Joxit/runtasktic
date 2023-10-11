@@ -11,11 +11,18 @@ pub fn dot_write_file<W: Write>(fst: &TaskFst, writer: &mut W) -> std::io::Resul
     let node = iter.next().unwrap();
     let label = node.label.replace("\"", "\\\"");
     let id = format_id(&node.label);
+
     let shape = if node.next.len() == 0 {
       "doublecircle"
     } else {
       "circle"
     };
+
+    if node.prev.len() == 0 {
+      writeln!(writer, r#"  init_{}[label="", shape=point]"#, id)?;
+      writeln!(writer, r#"  init_{} -> {0}"#, id)?;
+    }
+
     writeln!(writer, r#"  {}[label="{}" shape={}]"#, id, label, shape)?;
     for next in node.next {
       writeln!(writer, "  {} -> {}", id, format_id(&fst.states[next].label))?;
@@ -83,9 +90,13 @@ mod test {
     assert_eq!(
       result,
       r#"digraph {
+  init_a[label="", shape=point]
+  init_a -> a
   a[label="\"a\"" shape=circle]
   a -> b_a_ba
   a -> c
+  init_e[label="", shape=point]
+  init_e -> e
   e[label="e" shape=circle]
   e -> ds
   b_a_ba[label="b a ba" shape=circle]
