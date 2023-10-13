@@ -12,24 +12,9 @@ fn sample_yaml() {
   let config = Config::from_str(yaml.as_str()).unwrap();
 
   let a = Task::new("a".to_string(), vec![echo("a"), sleep("0.5")], vec![], None);
-  let b = Task::new(
-    "b".to_string(),
-    vec![echo("b"), sleep("0.5")],
-    vec!["a".to_string()],
-    None,
-  );
-  let c = Task::new(
-    "c".to_string(),
-    vec![echo("c")],
-    vec!["a".to_string()],
-    None,
-  );
-  let d = Task::new(
-    "d".to_string(),
-    vec![echo("d")],
-    vec!["b".to_string(), "c".to_string()],
-    None,
-  );
+  let b = Task::new("b", vec![echo("b"), sleep("0.5")], vs(&["a"]), None);
+  let c = Task::new("c", vec![echo("c")], vs(&["a"]), None);
+  let d = Task::new("d", vec![echo("d")], vs(&["b", "c"]), None);
 
   assert_eq!(*config.notification(), None);
   assert_eq!(config.concurrency(), -1);
@@ -51,45 +36,59 @@ fn concurrency_yaml() {
   let yaml = fs::read_to_string(CONCURRENCY_YAML).unwrap();
   let config = Config::from_str(yaml.as_str()).unwrap();
 
-  let a = Task::new(
-    "a".to_string(),
-    vec![echo("Begin a"), sleep("0.5"), echo("End a")],
+  let a1 = Task::new(
+    "a1",
+    vec![echo("Begin a1"), sleep("0.5"), echo("End a1")],
+    vec![],
+    None,
+  );
+  let a2 = Task::new(
+    "a2",
+    vec![echo("Begin a2"), sleep("1"), echo("End a2")],
     vec![],
     None,
   );
   let b = Task::new(
-    "b".to_string(),
+    "b",
     vec![echo("Begin b"), sleep("0.5"), echo("End b")],
-    vec!["a".to_string()],
+    vs(&["a1", "a2"]),
     None,
   );
   let c = Task::new(
-    "c".to_string(),
+    "c",
     vec![echo("Begin c"), sleep("1"), echo("End c")],
-    vec!["a".to_string()],
+    vs(&["a1"]),
     None,
   );
   let d = Task::new(
-    "d".to_string(),
+    "d",
     vec![echo("Begin d"), sleep("0.5"), echo("End d")],
-    vec!["a".to_string()],
+    vs(&["a1"]),
     None,
   );
   let e = Task::new(
-    "e".to_string(),
+    "e",
     vec![echo("Begin e"), sleep("0.5"), echo("End e")],
-    vec!["b".to_string(), "c".to_string(), "d".to_string()],
+    vs(&["b", "c", "d"]),
+    None,
+  );
+  let f = Task::new(
+    "f",
+    vec![echo("Begin f"), sleep("1"), echo("End f")],
+    vs(&["c"]),
     None,
   );
 
   assert_eq!(*config.notification(), None);
   assert_eq!(config.concurrency(), 2);
-  assert_eq!(config.tasks().len(), 5);
-  assert_eq!(config.tasks().get(&"a".to_string()), Some(&a));
+  assert_eq!(config.tasks().len(), 7);
+  assert_eq!(config.tasks().get(&"a1".to_string()), Some(&a1));
+  assert_eq!(config.tasks().get(&"a2".to_string()), Some(&a2));
   assert_eq!(config.tasks().get(&"b".to_string()), Some(&b));
   assert_eq!(config.tasks().get(&"c".to_string()), Some(&c));
   assert_eq!(config.tasks().get(&"d".to_string()), Some(&d));
   assert_eq!(config.tasks().get(&"e".to_string()), Some(&e));
+  assert_eq!(config.tasks().get(&"f".to_string()), Some(&f));
 }
 
 #[test]
@@ -98,33 +97,33 @@ fn notification_yaml() {
   let config = Config::from_str(yaml.as_str()).unwrap();
 
   let a = Task::new(
-    "a".to_string(),
+    "a",
     vec![echo("Begin a"), sleep("0.5"), echo("End a")],
     vec![],
     None,
   );
   let b = Task::new(
-    "b".to_string(),
+    "b",
     vec![echo("Begin b"), sleep("0.5"), echo("End b")],
-    vec!["a".to_string()],
+    vs(&["a"]),
     None,
   );
   let c = Task::new(
-    "c".to_string(),
+    "c",
     vec![echo("Begin c"), sleep("1"), echo("End c")],
-    vec!["a".to_string()],
+    vs(&["a"]),
     None,
   );
   let d = Task::new(
-    "d".to_string(),
+    "d",
     vec![echo("Begin d"), sleep("0.5"), echo("End d")],
-    vec!["a".to_string()],
+    vs(&["a"]),
     None,
   );
   let e = Task::new(
-    "e".to_string(),
+    "e",
     vec![echo("Begin e"), sleep("0.5"), echo("End e")],
-    vec!["b".to_string(), "c".to_string(), "d".to_string()],
+    vs(&["b", "c", "d"]),
     None,
   );
 
@@ -159,33 +158,33 @@ fn on_failure_yaml() {
   let config = Config::from_str(yaml.as_str()).unwrap();
 
   let a = Task::new(
-    "a".to_string(),
+    "a",
     vec![echo("Begin a"), format!("unknown-cmd"), echo("End a")],
     vec![],
     Some(OnFailure::Continue),
   );
   let b = Task::new(
-    "b".to_string(),
+    "b",
     vec![echo("Begin b"), format!("unknown-cmd"), echo("End b")],
-    vec!["a".to_string()],
+    vs(&["a"]),
     Some(OnFailure::Exit),
   );
   let c = Task::new(
-    "c".to_string(),
+    "c",
     vec![echo("Begin c"), sleep("1"), echo("End c")],
-    vec!["a".to_string()],
+    vs(&["a"]),
     None,
   );
   let d = Task::new(
-    "d".to_string(),
+    "d",
     vec![echo("Begin d"), sleep("0.5"), echo("End d")],
-    vec!["a".to_string()],
+    vs(&["a"]),
     None,
   );
   let e = Task::new(
-    "e".to_string(),
+    "e",
     vec![echo("Begin e"), sleep("0.5"), echo("End e")],
-    vec!["b".to_string(), "c".to_string(), "d".to_string()],
+    vs(&["b", "c", "d"]),
     None,
   );
 
@@ -206,4 +205,8 @@ fn echo(msg: &str) -> String {
 
 fn sleep(time: &str) -> String {
   format!("sleep {}", time)
+}
+
+fn vs(vec: &[&str]) -> Vec<String> {
+  vec.iter().map(|s| s.to_string()).collect()
 }

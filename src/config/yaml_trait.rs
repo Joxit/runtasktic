@@ -54,13 +54,13 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
       if let Some(tasks) = tasks.as_hash() {
         let mut result = HashMap::new();
         for (id, task) in tasks.iter() {
-          let id = id.as_str().ok_or("Task ids must be strings".to_string())?;
+          let id = id.as_str().ok_or("Task ids must be strings")?;
           let commands = task.get_commands();
           let depends_on = task.get_depends_on();
           let on_failure = task.get_on_failure()?;
           result.insert(
             id.to_string(),
-            Task::new(id.to_string(), commands, depends_on, on_failure),
+            Task::new(id, commands, depends_on, on_failure),
           );
         }
         return Ok(result);

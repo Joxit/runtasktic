@@ -38,7 +38,7 @@ impl Dot {
 
     let mut graph = TaskFst::new();
     for task in config.tasks_values_mut() {
-      task.set_state(graph.add_state(task.id().to_owned()));
+      task.set_state(graph.add_state(task.id()));
     }
 
     for task in config.tasks().values() {

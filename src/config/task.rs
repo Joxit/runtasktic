@@ -10,17 +10,17 @@ pub struct Task {
 }
 
 impl Task {
-  pub fn new(
-    id: String,
+  pub fn new<S: Into<String>>(
+    id: S,
     commands: Vec<String>,
     depends_on: Vec<String>,
     on_failure: Option<OnFailure>,
   ) -> Task {
     Task {
-      id: id,
-      commands: commands,
-      depends_on: depends_on,
-      on_failure: on_failure,
+      id: id.into(),
+      commands,
+      depends_on,
+      on_failure,
       state: 0,
     }
   }

@@ -29,9 +29,9 @@ impl TaskFst {
     self.states.len()
   }
 
-  pub fn add_state(&mut self, label: String) -> usize {
+  pub fn add_state<S: Into<String>>(&mut self, label: S) -> usize {
     self.states.push(TaskFstState {
-      label: label,
+      label: label.into(),
       id: self.states.len(),
       next: vec![],
       prev: vec![],
@@ -137,8 +137,8 @@ mod test {
   #[test]
   pub fn add_arc() {
     let mut fst = TaskFst::new();
-    fst.add_state("a".to_string());
-    fst.add_state("b".to_string());
+    fst.add_state("a");
+    fst.add_state("b");
     fst.add_arc(0, 1);
 
     assert_eq!(
@@ -166,8 +166,8 @@ mod test {
   #[test]
   pub fn is_cyclic_and_reachable() {
     let mut fst = TaskFst::new();
-    fst.add_state("a".to_string());
-    fst.add_state("b".to_string());
+    fst.add_state("a");
+    fst.add_state("b");
 
     fst.add_arc(0, 1);
     assert_eq!(fst.reachable_states(), vec![false, false]);
@@ -176,7 +176,7 @@ mod test {
 
     assert!(!fst.is_cyclic());
 
-    fst.add_state("c".to_string());
+    fst.add_state("c");
 
     assert_eq!(fst.reachable_states(), vec![true, true, false]);
     fst.add_arc(0, 2);
@@ -185,13 +185,13 @@ mod test {
     fst.add_arc(1, 2);
     assert!(!fst.is_cyclic());
 
-    fst.add_state("d".to_string());
+    fst.add_state("d");
     assert_eq!(fst.reachable_states(), vec![true, true, true, false]);
     fst.add_arc(2, 3);
     assert_eq!(fst.reachable_states(), vec![true, true, true, true]);
     assert!(!fst.is_cyclic());
 
-    fst.add_state("e".to_string());
+    fst.add_state("e");
     assert_eq!(fst.reachable_states(), vec![true, true, true, true, false]);
     fst.add_start_state(4);
     assert_eq!(fst.reachable_states(), vec![true, true, true, true, true]);

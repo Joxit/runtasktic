@@ -1,31 +1,42 @@
 tasks:
-  a:
+  a1:
     commands:
-      - echo Begin a
+      - echo Begin a1
       - sleep 0.5
-      - echo End a
+      - echo End a1
+  a2:
+    commands:
+      - echo Begin a2
+      - sleep 1
+      - echo End a2
   b:
     commands:
       - echo Begin b
       - sleep 0.5
       - echo End b
-    depends_on: [ a ]
+    depends_on: [ a1, a2 ]
   c:
     commands:
       - echo Begin c
       - sleep 1
       - echo End c
-    depends_on: [ a ]
+    depends_on: [ a1 ]
   d:
     commands:
       - echo Begin d
       - sleep 0.5
       - echo End d
-    depends_on: [ a ]
+    depends_on: [ a1 ]
   e:
     commands:
       - echo Begin e
       - sleep 0.5
       - echo End e
     depends_on: [ b, c, d ]
+  f:
+    commands:
+      - echo Begin f
+      - sleep 1
+      - echo End f
+    depends_on: [ c ]
 concurrency: 2

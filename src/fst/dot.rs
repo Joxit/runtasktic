@@ -66,19 +66,19 @@ mod test {
   #[test]
   fn dot_write_file() {
     let mut fst = TaskFst::new();
-    fst.add_state("\"a\"".to_string());
-    fst.add_state("b a ba".to_string());
+    fst.add_state("\"a\"");
+    fst.add_state("b a ba");
     fst.add_arc(0, 1);
     fst.add_start_state(0);
 
-    fst.add_state("c".to_string());
+    fst.add_state("c");
     fst.add_arc(0, 2);
     fst.add_arc(1, 2);
 
-    fst.add_state("d%s".to_string());
+    fst.add_state("d%s");
     fst.add_arc(2, 3);
 
-    fst.add_state("e".to_string());
+    fst.add_state("e");
     fst.add_start_state(4);
 
     fst.add_arc(4, 3);
