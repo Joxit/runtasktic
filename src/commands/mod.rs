@@ -2,12 +2,14 @@ use crate::commands::completion::Completion;
 use crate::commands::dot::Dot;
 use crate::commands::exec::Exec;
 use crate::commands::run::Run;
+use crate::commands::update::Update;
 use clap::Parser;
 
 mod completion;
 mod dot;
 mod exec;
 mod run;
+mod update;
 
 #[derive(Parser, Debug)]
 pub enum Command {
@@ -27,6 +29,9 @@ pub enum Command {
   /// Generate completion script for your shell.
   #[command(name = "completion", subcommand)]
   Completion(Completion),
+  /// Self update of the binary.
+  #[command(name = "update")]
+  Update(Update),
 }
 
 impl Command {
@@ -36,6 +41,7 @@ impl Command {
       Command::Exec(executable) => executable.exec(),
       Command::Dot(executable) => executable.exec(),
       Command::Completion(executable) => executable.exec(),
+      Command::Update(executable) => executable.exec(),
     }
   }
 }
