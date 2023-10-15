@@ -1,4 +1,5 @@
 use crate::Runtasktic;
+use anyhow::Result;
 use clap::{CommandFactory, Parser};
 use clap_complete::{generate, Shell};
 
@@ -20,7 +21,7 @@ pub enum Completion {
 }
 
 impl Completion {
-  pub fn exec(&self) {
+  pub fn exec(&self) -> Result<()> {
     let shell = match self {
       Completion::Bash => Shell::Bash,
       Completion::Fish => Shell::Fish,
@@ -30,5 +31,6 @@ impl Completion {
     let mut cli = Runtasktic::command();
     let bin_name = cli.get_name().to_string();
     generate(shell, &mut cli, &bin_name, &mut std::io::stdout());
+    Ok(())
   }
 }

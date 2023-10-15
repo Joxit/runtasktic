@@ -3,6 +3,7 @@ use crate::commands::dot::Dot;
 use crate::commands::exec::Exec;
 use crate::commands::run::Run;
 use crate::commands::update::Update;
+use anyhow::Result;
 use clap::Parser;
 
 mod completion;
@@ -35,7 +36,7 @@ pub enum Command {
 }
 
 impl Command {
-  pub fn exec(&self) {
+  pub fn exec(&self) -> Result<()> {
     match self {
       Command::Run(executable) => executable.exec(),
       Command::Exec(executable) => executable.exec(),

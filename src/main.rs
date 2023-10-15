@@ -1,4 +1,5 @@
 use crate::commands::Command;
+use anyhow::Result;
 use clap::{Args, CommandFactory, Parser};
 
 mod commands;
@@ -22,8 +23,8 @@ impl Runtasktic {
   }
 }
 
-fn main() {
+fn main() -> Result<()> {
   let opt = Runtasktic::parse();
 
-  opt.command.exec();
+  opt.command.exec()
 }

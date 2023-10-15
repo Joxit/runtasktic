@@ -1,4 +1,5 @@
 use crate::config::*;
+use anyhow::{anyhow, ensure, Result};
 use linked_hash_map::LinkedHashMap;
 use std::collections::HashMap;
 use yaml_rust::Yaml;
@@ -26,35 +27,35 @@ const MESSAGES_ALL_TASKS_END: &str = "all_tasks_end";
 const MESSAGES_TASK_FAILED: &str = "task_failed";
 
 pub trait YamlTasksScheduler {
-  fn get_tasks(&self) -> Result<HashMap<String, Task>, String>;
+  fn get_tasks(&self) -> Result<HashMap<String, Task>>;
   fn get_commands(&self) -> Vec<String>;
   fn get_depends_on(&self) -> Vec<String>;
-  fn get_concurrency(&self) -> Result<i64, String>;
-  fn get_notification(&self) -> Result<Option<Notification>, String>;
-  fn get_slack(&self) -> Result<Option<Slack>, String>;
-  fn get_print(&self) -> Result<Option<Print>, String>;
-  fn get_string(&self, key: &str) -> Result<Option<String>, String>;
-  fn get_when_notify(&self) -> Result<Option<WhenNotify>, String>;
-  fn get_on_failure(&self) -> Result<Option<OnFailure>, String>;
-  fn get_messages(&self) -> Result<Messages, String>;
-  fn get_working_dir(&self) -> Result<Option<String>, String> {
+  fn get_concurrency(&self) -> Result<i64>;
+  fn get_notification(&self) -> Result<Option<Notification>>;
+  fn get_slack(&self) -> Result<Option<Slack>>;
+  fn get_print(&self) -> Result<Option<Print>>;
+  fn get_string(&self, key: &str) -> Result<Option<String>>;
+  fn get_when_notify(&self) -> Result<Option<WhenNotify>>;
+  fn get_on_failure(&self) -> Result<Option<OnFailure>>;
+  fn get_messages(&self) -> Result<Messages>;
+  fn get_working_dir(&self) -> Result<Option<String>> {
     self.get_string(WORKING_DIR_KEY)
   }
-  fn get_stdout(&self) -> Result<Option<String>, String> {
+  fn get_stdout(&self) -> Result<Option<String>> {
     self.get_string(STDOUT_KEY)
   }
-  fn get_stderr(&self) -> Result<Option<String>, String> {
+  fn get_stderr(&self) -> Result<Option<String>> {
     self.get_string(STDERR_KEY)
   }
 }
 
 impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
-  fn get_tasks(&self) -> Result<HashMap<String, Task>, String> {
+  fn get_tasks(&self) -> Result<HashMap<String, Task>> {
     if let Some(tasks) = self.get(&Yaml::String(String::from(TASKS_KEY))) {
       if let Some(tasks) = tasks.as_hash() {
         let mut result = HashMap::new();
         for (id, task) in tasks.iter() {
-          let id = id.as_str().ok_or("Task ids must be strings")?;
+          let id = id.as_str().ok_or(anyhow!("Task ids must be strings"))?;
           let commands = task.get_commands();
           let depends_on = task.get_depends_on();
           let on_failure = task.get_on_failure()?;
@@ -97,23 +98,20 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
     vec![]
   }
 
-  fn get_concurrency(&self) -> Result<i64, String> {
+  fn get_concurrency(&self) -> Result<i64> {
     if let Some(concurrency) = self.get(&Yaml::String(String::from(CONCURRENCY_KEY))) {
       if let Some(concurrency) = concurrency.as_i64() {
-        if concurrency < 1 {
-          Err(String::from("Concurrency must be greater than 0 !"))
-        } else {
-          Ok(concurrency)
-        }
+        ensure!(concurrency > 0, "Concurrency must be greater than 0 !");
+        Ok(concurrency)
       } else {
-        Err(String::from("Incorrect value, should be an integer"))
+        Err(anyhow!("Incorrect value, should be an integer"))
       }
     } else {
       Ok(-1)
     }
   }
 
-  fn get_notification(&self) -> Result<Option<Notification>, String> {
+  fn get_notification(&self) -> Result<Option<Notification>> {
     if let Some(notification) = self.get(&Yaml::String(String::from(NOTIFICATION_KEY))) {
       return Ok(Some(Notification::new(
         notification.get_slack()?,
@@ -125,15 +123,15 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
     Ok(None)
   }
 
-  fn get_slack(&self) -> Result<Option<Slack>, String> {
+  fn get_slack(&self) -> Result<Option<Slack>> {
     if let Some(slack) = self.get(&Yaml::String(String::from(SLACK_KEY))) {
       return Ok(Some(Slack::new(
         slack
           .get_string(URL_KEY)?
-          .ok_or(String::from("Slack url is required!"))?,
+          .ok_or(anyhow!("Slack url is required!"))?,
         slack
           .get_string(CHANNEL_KEY)?
-          .ok_or(String::from("Slack channel is required!"))?,
+          .ok_or(anyhow!("Slack channel is required!"))?,
         slack.get_string(USERNAME_KEY)?,
         slack.get_string(EMOJI_KEY)?,
         slack.get_when_notify()?,
@@ -142,23 +140,23 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
     Ok(None)
   }
 
-  fn get_print(&self) -> Result<Option<Print>, String> {
+  fn get_print(&self) -> Result<Option<Print>> {
     if let Some(print) = self.get(&Yaml::String(String::from(PRINT_KEY))) {
       return Ok(Some(Print::new(
         print
           .get_string(OUTPUT_KEY)?
-          .ok_or(String::from("print output is required!"))?,
+          .ok_or(anyhow!("print output is required!"))?,
         print.get_when_notify()?,
       )));
     }
     Ok(None)
   }
 
-  fn get_string(&self, key: &str) -> Result<Option<String>, String> {
+  fn get_string(&self, key: &str) -> Result<Option<String>> {
     if let Some(value) = self.get(&Yaml::String(String::from(key))) {
       let value = value
         .as_str()
-        .ok_or(format!("{} is not a string type", key))?
+        .ok_or(anyhow!("{} is not a string type", key))?
         .to_string();
       Ok(Some(value))
     } else {
@@ -166,7 +164,7 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
     }
   }
 
-  fn get_when_notify(&self) -> Result<Option<WhenNotify>, String> {
+  fn get_when_notify(&self) -> Result<Option<WhenNotify>> {
     if let Some(when) = self.get_string(WHEN_KEY)? {
       match when.as_str() {
         "always" => Ok(Some(WhenNotify::Always)),
@@ -174,20 +172,20 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
         "end" => Ok(Some(WhenNotify::End)),
         "never" => Ok(Some(WhenNotify::Never)),
         "" => Ok(None),
-        _ => Err(format!("{} is an incorrect value for when", when)),
+        _ => Err(anyhow!("{} is an incorrect value for when", when)),
       }
     } else {
       Ok(None)
     }
   }
 
-  fn get_on_failure(&self) -> Result<Option<OnFailure>, String> {
+  fn get_on_failure(&self) -> Result<Option<OnFailure>> {
     if let Some(on_failure) = self.get_string(ON_FAILURE_KEY)? {
       match on_failure.as_str() {
         "continue" => Ok(Some(OnFailure::Continue)),
         "exit" => Ok(Some(OnFailure::Exit)),
         "" => Ok(None),
-        _ => Err(format!(
+        _ => Err(anyhow!(
           "{} is an incorrect value for on_failure",
           on_failure
         )),
@@ -197,19 +195,19 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
     }
   }
 
-  fn get_messages(&self) -> Result<Messages, String> {
+  fn get_messages(&self) -> Result<Messages> {
     let default = Messages::default();
     if let Some(messages) = self.get(&Yaml::String(String::from(MESSAGES_KEY))) {
       Ok(Messages::new(
         messages
           .get_string(MESSAGES_TASK_END)?
-          .ok_or(default.task_end())?,
+          .unwrap_or(default.task_end().clone()),
         messages
           .get_string(MESSAGES_ALL_TASKS_END)?
-          .ok_or(default.all_tasks_end())?,
+          .unwrap_or(default.all_tasks_end().clone()),
         messages
           .get_string(MESSAGES_TASK_FAILED)?
-          .ok_or(default.task_failed())?,
+          .unwrap_or(default.task_failed().clone()),
       ))
     } else {
       Ok(default)
@@ -218,10 +216,10 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
 }
 
 impl YamlTasksScheduler for Yaml {
-  fn get_tasks(&self) -> Result<HashMap<String, Task>, String> {
+  fn get_tasks(&self) -> Result<HashMap<String, Task>> {
     self
       .as_hash()
-      .ok_or(String::from("task key must be present !"))?
+      .ok_or(anyhow!("task key must be present !"))?
       .get_tasks()
   }
 
@@ -241,7 +239,7 @@ impl YamlTasksScheduler for Yaml {
     }
   }
 
-  fn get_concurrency(&self) -> Result<i64, String> {
+  fn get_concurrency(&self) -> Result<i64> {
     if let Some(concurrency) = self.as_hash() {
       concurrency.get_concurrency()
     } else {
@@ -249,7 +247,7 @@ impl YamlTasksScheduler for Yaml {
     }
   }
 
-  fn get_notification(&self) -> Result<Option<Notification>, String> {
+  fn get_notification(&self) -> Result<Option<Notification>> {
     if let Some(notification) = self.as_hash() {
       notification.get_notification()
     } else {
@@ -257,7 +255,7 @@ impl YamlTasksScheduler for Yaml {
     }
   }
 
-  fn get_slack(&self) -> Result<Option<Slack>, String> {
+  fn get_slack(&self) -> Result<Option<Slack>> {
     if let Some(slack) = self.as_hash() {
       slack.get_slack()
     } else {
@@ -265,7 +263,7 @@ impl YamlTasksScheduler for Yaml {
     }
   }
 
-  fn get_print(&self) -> Result<Option<Print>, String> {
+  fn get_print(&self) -> Result<Option<Print>> {
     if let Some(print) = self.as_hash() {
       print.get_print()
     } else {
@@ -273,7 +271,7 @@ impl YamlTasksScheduler for Yaml {
     }
   }
 
-  fn get_string(&self, key: &str) -> Result<Option<String>, String> {
+  fn get_string(&self, key: &str) -> Result<Option<String>> {
     if let Some(string) = self.as_hash() {
       string.get_string(key)
     } else {
@@ -281,7 +279,7 @@ impl YamlTasksScheduler for Yaml {
     }
   }
 
-  fn get_when_notify(&self) -> Result<Option<WhenNotify>, String> {
+  fn get_when_notify(&self) -> Result<Option<WhenNotify>> {
     if let Some(when_notify) = self.as_hash() {
       when_notify.get_when_notify()
     } else {
@@ -289,7 +287,7 @@ impl YamlTasksScheduler for Yaml {
     }
   }
 
-  fn get_on_failure(&self) -> Result<Option<OnFailure>, String> {
+  fn get_on_failure(&self) -> Result<Option<OnFailure>> {
     if let Some(on_failure) = self.as_hash() {
       on_failure.get_on_failure()
     } else {
@@ -297,7 +295,7 @@ impl YamlTasksScheduler for Yaml {
     }
   }
 
-  fn get_messages(&self) -> Result<Messages, String> {
+  fn get_messages(&self) -> Result<Messages> {
     if let Some(messages) = self.as_hash() {
       messages.get_messages()
     } else {
@@ -323,7 +321,8 @@ mod test {
     let yaml = yaml.first().unwrap();
     let expected: HashMap<String, Task> = HashMap::new();
 
-    assert_eq!(yaml.get_tasks(), Ok(expected));
+    assert!(yaml.get_tasks().is_ok());
+    assert_eq!(yaml.get_tasks().unwrap(), expected);
   }
 
   #[test]
@@ -341,7 +340,8 @@ mod test {
       String::from("a"),
       Task::new(String::from("a"), vec![], vec![], None),
     );
-    assert_eq!(yaml.get_tasks(), Ok(expected));
+    assert!(yaml.get_tasks().is_ok());
+    assert_eq!(yaml.get_tasks().unwrap(), expected);
   }
 
   #[test]
@@ -366,7 +366,8 @@ mod test {
         None,
       ),
     );
-    assert_eq!(yaml.get_tasks(), Ok(expected));
+    assert!(yaml.get_tasks().is_ok());
+    assert_eq!(yaml.get_tasks().unwrap(), expected);
   }
 
   #[test]
@@ -394,6 +395,7 @@ mod test {
         None,
       ),
     );
-    assert_eq!(yaml.get_tasks(), Ok(expected));
+    assert!(yaml.get_tasks().is_ok());
+    assert_eq!(yaml.get_tasks().unwrap(), expected);
   }
 }

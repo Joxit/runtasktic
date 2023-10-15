@@ -1,3 +1,4 @@
+use anyhow::{anyhow, bail, ensure, Context, Result};
 use clap::Parser;
 use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
@@ -8,22 +9,20 @@ use std::{env, fs};
 pub struct Update {}
 
 impl Update {
-  pub fn exec(&self) {
-    if let Err(err) = self.update() {
-      eprintln!("{}", err);
-    }
+  pub fn exec(&self) -> Result<()> {
+    self.update()
   }
 
-  fn update(&self) -> Result<(), String> {
-    let path = env::current_exe().map_err(|msg| format!("Cannot find the executable: {}", msg))?;
+  fn update(&self) -> Result<()> {
+    let path = env::current_exe().with_context(|| "Cannot find the executable")?;
     let metadata = fs::metadata(&path)
-      .map_err(|msg| format!("Cannot find metadata of the executable: {}", msg))?;
+      .with_context(|| anyhow!("Cannot find metadata of the executable {}", path.display()))?;
     if metadata.is_dir()
       || metadata.is_symlink()
       || !metadata.is_file()
       || metadata.permissions().readonly()
     {
-      return Err(format!("The executable cannot be replaced."));
+      bail!("The executable cannot be replaced.");
     }
     print!(
       "The original executable has been located {}",
@@ -36,62 +35,55 @@ impl Update {
     let digest = Self::get_sha256(&latest_version)?;
     let binary_digest = sha256::digest(&binary);
 
-    if binary_digest != digest {
-      return Err(format!(
-        "Binary corrupted the downloaded sha256 does not match trusted: {} downloaded: {}",
-        digest, binary_digest
-      ));
-    }
+    ensure!(
+      binary_digest == digest,
+      "Binary corrupted the downloaded sha256 does not match trusted: {} downloaded: {}",
+      digest,
+      binary_digest
+    );
 
     let mut file = fs::OpenOptions::new()
       .create(true)
       .write(true)
       .mode(mode)
       .open(&new_path)
-      .map_err(|msg| format!("Cannot create binary on disk: {}", msg))?;
+      .with_context(|| anyhow!("Cannot create binary {} on disk", new_path.display()))?;
 
     file
       .write_all(&binary)
-      .map_err(|msg| format!("Cannot write binary on disk: {}", msg))?;
+      .with_context(|| anyhow!("Cannot write binary {} on disk", new_path.display()))?;
 
-    fs::rename(&new_path, &path).map_err(|msg| {
-      format!(
-        "Cannot rename {} to {}: {}",
-        new_path.display(),
-        path.display(),
-        msg
-      )
-    })?;
+    fs::rename(&new_path, &path)
+      .with_context(|| anyhow!("Cannot rename {} to {}", new_path.display(), path.display()))?;
 
     Ok(())
   }
 
-  fn get_latest_version() -> Result<String, String> {
+  fn get_latest_version() -> Result<String> {
     let response = attohttpc::get("https://api.github.com/repos/Joxit/runtasktic/releases/latest")
       .send()
-      .map_err(|msg| format!("Cannot get the latest version of the project: {}", msg))?;
+      .with_context(|| "Cannot get the latest version of the project")?;
 
-    if !response.is_success() {
-      return Err(format!(
-        "Cannot get the latest version of the project: {}",
-        response.status()
-      ));
-    }
+    ensure!(
+      response.is_success(),
+      "Cannot get the latest version of the project from GitHub API: {}",
+      response.status()
+    );
 
     let response_json = json::parse(
       &response
         .text()
-        .map_err(|msg| format!("Cannot get the GitHub API release: {}", msg))?,
+        .with_context(|| "Cannot get the GitHub API release")?,
     )
-    .map_err(|msg| format!("Cannot parse GitHub API release: {}", msg))?;
+    .with_context(|| "Cannot parse GitHub API release")?;
 
     let obj = match &response_json {
       json::JsonValue::Object(obj) => obj,
       _ => {
-        return Err(format!(
+        bail!(
           "Cannot get the latest version of the project: {}",
           response_json
-        ))
+        )
       }
     };
 
@@ -101,7 +93,7 @@ impl Update {
       println!("{}", body);
     }
 
-    let err = format!("The tag cannot be parsed");
+    let err = anyhow!("The tag cannot be parsed");
     if let Some(test) = tag_name {
       test.as_str().map(|version| version.to_string()).ok_or(err)
     } else {
@@ -109,48 +101,59 @@ impl Update {
     }
   }
 
-  fn get_binary(version: &String) -> Result<Vec<u8>, String> {
+  fn get_binary(version: &String) -> Result<Vec<u8>> {
     let url = format!(
       "https://github.com/Joxit/runtasktic/releases/download/{}/runtasktic-linux-x86_64",
       version
     );
     let response = attohttpc::get(url)
       .send()
-      .map_err(|msg| format!("Cannot get the binary of the project: {}", msg))?;
+      .with_context(|| format!("Cannot get the binary version {} of the project", version))?;
 
-    if !response.is_success() {
-      return Err(format!(
-        "Cannot get the binary of the project: {}",
-        response.status()
-      ));
-    }
+    ensure!(
+      response.is_success(),
+      "Cannot get the binary version {} of the project: {}",
+      version,
+      response.status()
+    );
 
-    let bytes = response
-      .bytes()
-      .map_err(|msg| format!("Cannot collect all the bytes of the binary: {}", msg))?;
+    let bytes = response.bytes().with_context(|| {
+      anyhow!(
+        "Cannot collect all the bytes of the binary version {}",
+        version
+      )
+    })?;
 
     Ok(bytes)
   }
 
-  fn get_sha256(version: &String) -> Result<String, String> {
+  fn get_sha256(version: &String) -> Result<String> {
     let url = format!(
       "https://github.com/Joxit/runtasktic/releases/download/{}/runtasktic-linux-x86_64.sha256",
       version
     );
-    let response = attohttpc::get(url)
-      .send()
-      .map_err(|msg| format!("Cannot get the binary's sha256 of the project: {}", msg))?;
+    let response = attohttpc::get(url).send().with_context(|| {
+      anyhow!(
+        "Cannot get the binary's sha256 of the project version {}",
+        version
+      )
+    })?;
 
-    if !response.is_success() {
-      return Err(format!(
-        "Cannot get the binary's sha256 of the project: {}",
-        response.status()
-      ));
-    }
+    ensure!(
+      response.is_success(),
+      "Cannot get the binary's sha256 of the project version {}: {}",
+      version,
+      response.status()
+    );
 
     let sha256 = response
       .text()
-      .map_err(|msg| format!("Cannot collect the binary's sha256 of the project: {}", msg))?
+      .with_context(|| {
+        anyhow!(
+          "Cannot collect the binary's sha256 of the project version {}",
+          version
+        )
+      })?
       .trim()
       .split_once(" ")
       .unwrap_or_default()

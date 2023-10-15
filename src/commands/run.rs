@@ -1,6 +1,7 @@
 use crate::config::{Config, OnFailure};
 use crate::fst::*;
 use crate::utils::traits::{CommandConfig, WaitSchedule};
+use anyhow::{anyhow, bail, ensure, Context, Result};
 use chrono::Local;
 use clap::Parser;
 use cron::Schedule;
@@ -8,7 +9,7 @@ use libc::{fork, signal};
 use libc::{SIGHUP, SIG_IGN};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{exit, Command, Stdio};
+use std::process::{Command, Stdio};
 
 #[derive(Parser, Debug)]
 pub struct Run {
@@ -29,12 +30,13 @@ pub struct Run {
 }
 
 impl Run {
-  pub fn exec(&self) {
+  pub fn exec(&self) -> Result<()> {
     for config in &self.config {
-      if !config.exists() {
-        eprintln!("The config file {} does not exists", config.display());
-        exit(1);
-      }
+      ensure!(
+        config.exists(),
+        "The config file {} does not exists",
+        config.display()
+      )
     }
     let timezone = Local::now().timezone();
 
@@ -44,7 +46,7 @@ impl Run {
 
     if self.background && unsafe { fork() } != 0 {
       // The main process should return
-      return;
+      return Ok(());
     } else if self.background {
       // Ignoring SIGHUP in background mode
       unsafe { signal(SIGHUP, SIG_IGN) };
@@ -55,29 +57,26 @@ impl Run {
 
       for (i, config) in self.config.iter().enumerate() {
         let starts = if i == 0 { self.starts.clone() } else { vec![] };
-        if let Err(e) = self.run(&config.as_path(), &starts) {
-          eprintln!("{}", e);
-          exit(1);
-        }
+        self.run(&config.as_path(), &starts)?;
       }
       if self.cron.is_none() {
-        break;
+        return Ok(());
       }
     }
   }
 
-  fn run(&self, config_path: &Path, starts: &Vec<String>) -> Result<(), String> {
+  fn run(&self, config_path: &Path, starts: &Vec<String>) -> Result<()> {
     let yaml = fs::read_to_string(config_path)
-      .map_err(|msg| format!("Can't read the config file: {}", msg))?;
+      .with_context(|| format!("Can't read the config file {}", config_path.display()))?;
 
     let mut config = Config::from_str(yaml.as_str())
-      .map_err(|msg| format!("Can't process the config file: {}", msg))?;
+      .with_context(|| format!("Can't process the config file {}", config_path.display()))?;
 
     if config.tasks().is_empty() {
-      return Err(format!(
+      bail!(
         "Need at least one task in the config file to run: `{}`",
         config_path.display()
-      ));
+      );
     }
 
     let mut graph = TaskFst::new();
@@ -92,7 +91,7 @@ impl Run {
         graph.add_start_state(task.state());
       } else {
         for prev in task.depends_on().iter() {
-          let err_msg = format!("{} depends on {} but does not exists", task.id(), prev);
+          let err_msg = anyhow!("{} depends on {} but does not exists", task.id(), prev);
           let prev_state = config.tasks().get(prev).ok_or(err_msg)?.state();
           graph.add_arc(prev_state, task.state());
         }
@@ -100,8 +99,7 @@ impl Run {
     }
 
     if graph.is_cyclic() {
-      let err_msg = "Can't execute your configuration. There is a deadlock in your tasks !";
-      return Err(err_msg.to_string());
+      bail!("Can't execute your configuration. There is a deadlock in your tasks !");
     }
 
     let processes: &mut Vec<Option<std::process::Child>> = &mut vec![];
@@ -139,7 +137,7 @@ impl Run {
           .stderr_opt(config.stderr(), !self.background)?
           .working_dir(config.working_dir())?
           .spawn()
-          .map_err(|msg| format!("Can't run command `{}`: {}", cmd_line, msg))?;
+          .with_context(|| format!("Can't run command `{}`", cmd_line))?;
         processes[task.id()] = Some(child);
       } else if graph_iter.is_done() {
         break;

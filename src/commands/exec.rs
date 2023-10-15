@@ -1,5 +1,6 @@
 use crate::config::Config;
 use crate::utils::traits::{CommandConfig, WaitSchedule};
+use anyhow::{anyhow, ensure, Context, Result};
 use chrono::Local;
 use clap::Parser;
 use cron::Schedule;
@@ -31,12 +32,13 @@ pub struct Exec {
 }
 
 impl Exec {
-  pub fn exec(&self) {
+  pub fn exec(&self) -> Result<()> {
     if let Some(config) = &self.config {
-      if config != &PathBuf::from("-") && !config.exists() {
-        eprintln!("The config file {} does not exists", config.display());
-        return;
-      }
+      ensure!(
+        config == &PathBuf::from("-") || config.exists(),
+        "The config file {} does not exists",
+        config.display()
+      );
     }
     let timezone = Local::now().timezone();
 
@@ -46,7 +48,7 @@ impl Exec {
 
     if self.background && unsafe { fork() } != 0 {
       // The main process should return
-      return;
+      return Ok(());
     } else if self.background {
       // Ignoring SIGHUP in background mode
       unsafe { signal(SIGHUP, SIG_IGN) };
@@ -56,19 +58,19 @@ impl Exec {
       self.cron.wait(timezone);
 
       if let Err(e) = self.run() {
-        eprintln!("{}", e);
+        eprintln!("{:?}", e);
         if self.cron.is_none() {
           exit(1);
         }
       }
 
       if self.cron.is_none() {
-        break;
+        return Ok(());
       }
     }
   }
 
-  fn run(&self) -> Result<(), String> {
+  fn run(&self) -> Result<()> {
     let (config, path) = if Some(PathBuf::from("-")) == self.config {
       (Config::default(), format!("-"))
     } else if let Some(path) = &self.config {
@@ -83,9 +85,10 @@ impl Exec {
       config
         .tasks()
         .get(task)
-        .ok_or(format!(
+        .ok_or(anyhow!(
           "The task `{}` does not exist in your config file `{}`",
-          task, path
+          task,
+          path
         ))?
         .clone()
     } else {
@@ -101,7 +104,7 @@ impl Exec {
       .stderr_opt(config.stderr(), !self.background)?
       .working_dir(config.working_dir())?
       .spawn()
-      .map_err(|msg| format!("Can't run command `{}`: {}", cmd_line, msg))?;
+      .with_context(|| format!("Can't run command `{}`", cmd_line))?;
 
     let exit = child.wait().unwrap();
     if let Some(notification) = config.notification() {
@@ -130,12 +133,12 @@ impl Exec {
     }
   }
 
-  fn config_path(&self, path: &PathBuf) -> Result<(Config, String), String> {
-    let yaml = fs::read_to_string(path.as_path())
-      .map_err(|msg| format!("Can't read the config file: {}", msg))?;
+  fn config_path(&self, path: &PathBuf) -> Result<(Config, String)> {
+    let yaml = fs::read_to_string(&path)
+      .with_context(|| anyhow!("Can't read the config file {}", &path.display()))?;
 
     let config = Config::from_str(yaml.as_str())
-      .map_err(|msg| format!("Can't process the config file: {}", msg))?;
+      .with_context(|| anyhow!("Can't process the config file {}", &path.display()))?;
 
     Ok((config, format!("{}", path.display())))
   }

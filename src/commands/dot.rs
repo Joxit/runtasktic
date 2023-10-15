@@ -1,11 +1,11 @@
 use crate::config::Config;
 use crate::fst::dot::*;
 use crate::fst::*;
+use anyhow::{anyhow, ensure, Context, Result};
 use clap::Parser;
 use std::fs;
 use std::io::Cursor;
 use std::path::PathBuf;
-use std::process::exit;
 
 #[derive(Parser, Debug)]
 pub struct Dot {
@@ -18,23 +18,21 @@ pub struct Dot {
 }
 
 impl Dot {
-  pub fn exec(&self) {
-    if !self.config.exists() {
-      eprintln!("The config file {} does not exists", self.config.display());
-      return;
-    }
-    if let Err(e) = self.run() {
-      eprintln!("{}", e);
-      exit(1);
-    }
+  pub fn exec(&self) -> Result<()> {
+    ensure!(
+      self.config.exists(),
+      "The config file {} does not exists",
+      self.config.display()
+    );
+    self.run()
   }
 
-  fn run(&self) -> Result<(), String> {
+  fn run(&self) -> Result<()> {
     let yaml = fs::read_to_string(self.config.as_path())
-      .map_err(|msg| format!("Can't read the config file: {}", msg))?;
+      .with_context(|| anyhow!("Can't read the config file: {}", self.config.display()))?;
 
     let mut config = Config::from_str(yaml.as_str())
-      .map_err(|msg| format!("Can't process the config file: {}", msg))?;
+      .with_context(|| anyhow!("Can't read the config file {}", self.config.display()))?;
 
     let mut graph = TaskFst::new();
     for task in config.tasks_values_mut() {
@@ -47,22 +45,22 @@ impl Dot {
       } else {
         for prev in task.depends_on().iter() {
           let err_msg = format!("{} depends on {} but does not exists", task.id(), prev);
-          let prev_state = config.tasks().get(prev).ok_or(err_msg)?.state();
+          let prev_state = config.tasks().get(prev).ok_or(anyhow!(err_msg))?.state();
           graph.add_arc(prev_state, task.state());
         }
       }
     }
 
-    if graph.is_cyclic() {
-      let err_msg = "Can't execute your configuration. There is a deadlock in your tasks !";
-      return Err(err_msg.to_string());
-    }
+    ensure!(
+      !graph.is_cyclic(),
+      "Can't execute your configuration. There is a deadlock in your tasks !"
+    );
 
     let mut buf: Vec<u8> = vec![];
-    dot_write_file(&graph, &mut buf).map_err(|e| format!("Can't create dot file: {}", e))?;
+    dot_write_file(&graph, &mut buf).with_context(|| "Can't create dot file")?;
 
     dot_write_png(&mut Cursor::new(buf), &self.image)
-      .map_err(|e| format!("Can't save graph as png file: {}", e))?;
+      .with_context(|| "Can't save graph as png file")?;
 
     Ok(())
   }

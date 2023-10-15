@@ -1,5 +1,6 @@
 pub use crate::config::task::Task;
 use crate::config::yaml_trait::YamlTasksScheduler;
+use anyhow::{anyhow, Result};
 use std::collections::HashMap;
 use yaml_rust::YamlLoader;
 
@@ -62,11 +63,9 @@ pub struct Messages {
 }
 
 impl Config {
-  pub fn from_str(s: &str) -> Result<Config, String> {
-    let yaml = YamlLoader::load_from_str(s).map_err(|msg| format!("Wrong Yaml format: {}", msg))?;
-    let yaml = &yaml
-      .first()
-      .ok_or(String::from("This config yaml is empty."))?;
+  pub fn from_str(s: &str) -> Result<Config> {
+    let yaml = YamlLoader::load_from_str(s)?;
+    let yaml = &yaml.first().ok_or(anyhow!("This config yaml is empty."))?;
 
     Ok(Config {
       tasks: yaml.get_tasks()?,
