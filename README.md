@@ -17,6 +17,28 @@ Describe your tasks in a YAML file, execute all of them with runtasktic in foreg
 - when you need an alternative to nohup
 - when you need an alternative to crontab
 
+## How to install runtasktic ?
+
+You can install runtasktic via command line or by downloading the prebuild version on github.
+
+```bash
+mkdir ~/bin
+curl -sSL https://github.com/Joxit/runtasktic/releases/download/$(curl -sSL https://api.github.com/repos/Joxit/runtasktic/releases/latest | jq -r '.tag_name')/runtasktic-linux-x86_64 > ~/bin/runtasktic
+chmod +x ~/bin/runtasktic
+```
+
+If you are a rust user, you can use cargo to install runtasktic.
+
+```bash
+cargo install runtasktic
+```
+
+If you already installed runtasktic, you can updated it with commandline
+
+```bash
+runtasktic update
+```
+
 ## CLI
 
 ```
@@ -25,10 +47,11 @@ Command-line task management tool for execution of regular long sequential or pa
 Usage: runtasktic <COMMAND>
 
 Commands:
-  run         Run tasks
+  run         Run all tasks from your configuration in background or foreground
   dot         Export the configuration to a graph (needs graphviz/dot)
-  exec        Execute a single command with notification
+  exec        Execute a single command with notification in background or foreground
   completion  Generate completion script for your shell
+  update      Self update of the binary
   help        Print this message or the help of the given subcommand(s)
 
 Options:
@@ -125,6 +148,17 @@ Commands:
   zsh     Generates a completion file for the Z SHell (ZSH)
   elvish  Generates a completion file for Elvish
   help    Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+### Update: Update the binary
+
+```
+Self update of the binary
+
+Usage: runtasktic update
 
 Options:
   -h, --help  Print help

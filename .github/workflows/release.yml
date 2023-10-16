@@ -42,8 +42,8 @@ jobs:
         body_path: RELEASE_NOTE.md
         draft: false
         prerelease: false
-    - name: Upload Release Asset
-      id: upload-release-asset
+    - name: Upload Release Binary
+      id: upload-release-binary
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,7 +53,7 @@ jobs:
         asset_content_type: application/octet-stream
         asset_name: runtasktic-linux-x86_64
     - name: Upload SHA256 Asset
-      id: upload-release-asset
+      id: upload-release-sha256
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
