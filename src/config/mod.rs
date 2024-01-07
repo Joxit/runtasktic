@@ -1,6 +1,7 @@
 pub use crate::config::task::Task;
 use crate::config::yaml_trait::YamlTasksScheduler;
 use anyhow::{anyhow, Result};
+use mail_send::smtp;
 use std::collections::HashMap;
 use yaml_rust::YamlLoader;
 
@@ -22,6 +23,7 @@ pub struct Config {
 pub struct Notification {
   slack: Option<Slack>,
   print: Option<Print>,
+  mail: Option<Mail>,
   when: WhenNotify,
   messages: Messages,
 }
@@ -39,6 +41,23 @@ pub struct Slack {
 pub struct Print {
   output: String,
   when: Option<WhenNotify>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Mail {
+  from: (String, String),
+  to: Vec<(String, String)>,
+  subject: String,
+  smtp: MailSMTP,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct MailSMTP {
+  hostname: String,
+  port: u16,
+  username: String,
+  secret: String,
+  tls: bool,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -115,12 +134,14 @@ impl Notification {
   pub fn new(
     slack: Option<Slack>,
     print: Option<Print>,
+    mail: Option<Mail>,
     when: WhenNotify,
     messages: Messages,
   ) -> Notification {
     Notification {
       slack,
       print,
+      mail,
       when,
       messages,
     }
@@ -268,6 +289,66 @@ impl Print {
 
   pub fn when(&self) -> &Option<WhenNotify> {
     &self.when
+  }
+}
+
+impl Mail {
+  pub fn new(
+    from: (String, String),
+    to: Vec<(String, String)>,
+    subject: String,
+    smtp: MailSMTP,
+  ) -> Self {
+    Self {
+      from,
+      to,
+      subject,
+      smtp,
+    }
+  }
+
+  pub fn get_from(&self) -> &(String, String) {
+    &self.from
+  }
+
+  pub fn get_to(&self) -> &Vec<(String, String)> {
+    &self.to
+  }
+
+  pub fn get_subject(&self) -> &String {
+    &self.subject
+  }
+
+  pub fn get_smtp_hostname(&self) -> &String {
+    &self.smtp.hostname
+  }
+
+  pub fn get_smtp_port(&self) -> u16 {
+    self.smtp.port
+  }
+
+  pub fn get_smtp_username(&self) -> &String {
+    &self.smtp.username
+  }
+
+  pub fn get_smtp_secret(&self) -> &String {
+    &self.smtp.secret
+  }
+
+  pub fn get_smtp_tls(&self) -> bool {
+    self.smtp.tls
+  }
+}
+
+impl MailSMTP {
+  pub fn new(hostname: String, port: u16, username: String, secret: String, tls: bool) -> Self {
+    Self {
+      hostname,
+      port,
+      username,
+      secret,
+      tls,
+    }
   }
 }
 
