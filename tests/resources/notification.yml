@@ -36,6 +36,20 @@ notification:
     username: runtasktic
   print:
     output: stderr
+  email:
+    from:
+      name: Sender Name
+      address: sender@example.com
+    to:
+      - name: Receiver Name
+        address: receiver@example.com
+    subject: Subject
+    smtp:
+      hostname: smtp.example.com
+      port: 1587
+      username: sender@example.com
+      secret: secret-password
+      tls: false
   when: always
   messages:
     task_end: Task {task.id} ended with status code {task.status_code}

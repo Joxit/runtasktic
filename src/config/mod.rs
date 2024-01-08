@@ -1,7 +1,6 @@
 pub use crate::config::task::Task;
 use crate::config::yaml_trait::YamlTasksScheduler;
 use anyhow::{anyhow, Result};
-use mail_send::smtp;
 use std::collections::HashMap;
 use yaml_rust::YamlLoader;
 
@@ -49,6 +48,7 @@ pub struct Mail {
   to: Vec<(String, String)>,
   subject: String,
   smtp: MailSMTP,
+  when: Option<WhenNotify>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -298,12 +298,14 @@ impl Mail {
     to: Vec<(String, String)>,
     subject: String,
     smtp: MailSMTP,
+    when: Option<WhenNotify>,
   ) -> Self {
     Self {
       from,
       to,
       subject,
       smtp,
+      when
     }
   }
 

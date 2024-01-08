@@ -135,9 +135,26 @@ fn notification_yaml() {
     None,
   );
   let print = Print::new("stderr".to_string(), None);
+  let email = Mail::new(
+    ("Sender Name".to_string(), "sender@example.com".to_string()),
+    vec![(
+      ("Receiver Name".to_string()),
+      "receiver@example.com".to_string(),
+    )],
+    "Subject".to_string(),
+    MailSMTP::new(
+      "smtp.example.com".to_string(),
+      1587,
+      "sender@example.com".to_string(),
+      "secret-password".to_string(),
+      false,
+    ),
+    None,
+  );
   let notification = Notification::new(
     Some(slack),
     Some(print),
+    Some(email),
     WhenNotify::Always,
     Messages::default(),
   );

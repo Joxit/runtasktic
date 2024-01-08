@@ -1,5 +1,5 @@
 use crate::config::*;
-use anyhow::{anyhow, ensure, Result};
+use anyhow::{anyhow, bail, ensure, Result};
 use linked_hash_map::LinkedHashMap;
 use std::collections::HashMap;
 use yaml_rust::Yaml;
@@ -25,6 +25,17 @@ const MESSAGES_KEY: &str = "messages";
 const MESSAGES_TASK_END: &str = "task_end";
 const MESSAGES_ALL_TASKS_END: &str = "all_tasks_end";
 const MESSAGES_TASK_FAILED: &str = "task_failed";
+const FROM_KEY: &str = "from";
+const TO_KEY: &str = "to";
+const SUBJECT_KEY: &str = "subject";
+const SMTP_KEY: &str = "smtp";
+const EMAIL_KEY: &str = "email";
+const NAME_KEY: &str = "name";
+const ADDRESS_KEY: &str = "address";
+const HOSTNAME_KEY: &str = "hostname";
+const PORT_KEY: &str = "port";
+const SECRET_KEY: &str = "secret";
+const TLS_KEY: &str = "tls";
 
 pub trait YamlTasksScheduler {
   fn get_tasks(&self) -> Result<HashMap<String, Task>>;
@@ -34,10 +45,21 @@ pub trait YamlTasksScheduler {
   fn get_notification(&self) -> Result<Option<Notification>>;
   fn get_slack(&self) -> Result<Option<Slack>>;
   fn get_print(&self) -> Result<Option<Print>>;
+  fn get_mail(&self) -> Result<Option<Mail>>;
   fn get_string(&self, key: &str) -> Result<Option<String>>;
+  fn get_bool(&self, key: &str) -> Result<Option<bool>>;
+  fn get_u16(&self, key: &str) -> Result<Option<u16>>;
   fn get_when_notify(&self) -> Result<Option<WhenNotify>>;
   fn get_on_failure(&self) -> Result<Option<OnFailure>>;
   fn get_messages(&self) -> Result<Messages>;
+  fn get_name_and_address(&self) -> Result<(String, String)> {
+    Ok((
+      self.get_string(NAME_KEY)?.unwrap_or(String::from("")),
+      self
+        .get_string(ADDRESS_KEY)?
+        .ok_or(anyhow!("email address is required"))?,
+    ))
+  }
   fn get_working_dir(&self) -> Result<Option<String>> {
     self.get_string(WORKING_DIR_KEY)
   }
@@ -116,6 +138,7 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
       return Ok(Some(Notification::new(
         notification.get_slack()?,
         notification.get_print()?,
+        notification.get_mail()?,
         notification.get_when_notify()?.unwrap_or(WhenNotify::End),
         notification.get_messages()?,
       )));
@@ -152,6 +175,68 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
     Ok(None)
   }
 
+  fn get_mail(&self) -> Result<Option<Mail>> {
+    if let Some(mail) = self.get(&Yaml::String(String::from(EMAIL_KEY))) {
+      let mail = mail
+        .as_hash()
+        .ok_or(anyhow!("email key must be an object !"))?;
+
+      let from = match mail
+        .get(&Yaml::String(String::from(FROM_KEY)))
+        .ok_or(anyhow!("email.from is required"))?
+      {
+        Yaml::String(s) => (format!(""), format!("{}", s)),
+        Yaml::Hash(hash) => hash.get_name_and_address()?,
+        _ => bail!("email.from must be either a String or an object."),
+      };
+
+      let to = match mail
+        .get(&Yaml::String(String::from(TO_KEY)))
+        .ok_or(anyhow!("email.to is required"))?
+      {
+        Yaml::String(s) => vec![(format!(""), format!("{}", s))],
+        Yaml::Hash(hash) => vec![hash.get_name_and_address()?],
+        Yaml::Array(a) => {
+          let mut emails: Vec<(String, String)> = vec![];
+          for y in a {
+            emails.push(match y {
+              Yaml::String(s) => (format!(""), format!("{}", s)),
+              Yaml::Hash(hash) => hash.get_name_and_address()?,
+              _ => bail!("email.to must be either a list of String or a list of objects."),
+            });
+          }
+          emails
+        }
+        _ => bail!("email.to must be either a String, an object or a list."),
+      };
+
+      let smtp = match mail
+        .get(&Yaml::String(String::from(SMTP_KEY)))
+        .ok_or(anyhow!("email.smtp is required"))?
+      {
+        Yaml::Hash(hash) => MailSMTP::new(
+          hash.get_string(HOSTNAME_KEY)?.ok_or(anyhow!(""))?,
+          hash.get_u16(PORT_KEY)?.ok_or(anyhow!(""))?,
+          hash.get_string(USERNAME_KEY)?.ok_or(anyhow!(""))?,
+          hash.get_string(SECRET_KEY)?.ok_or(anyhow!(""))?,
+          hash.get_bool(TLS_KEY)?.unwrap_or(true),
+        ),
+        _ => bail!("email.smtp must be an object."),
+      };
+
+      return Ok(Some(Mail::new(
+        from,
+        to,
+        mail
+          .get_string(SUBJECT_KEY)?
+          .unwrap_or(format!("Runtasktik: task ended")),
+        smtp,
+        mail.get_when_notify()?,
+      )));
+    }
+    Ok(None)
+  }
+
   fn get_string(&self, key: &str) -> Result<Option<String>> {
     if let Some(value) = self.get(&Yaml::String(String::from(key))) {
       let value = value
@@ -162,6 +247,25 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
     } else {
       Ok(None)
     }
+  }
+
+  fn get_bool(&self, key: &str) -> Result<Option<bool>> {
+    Ok(
+      self
+        .get(&Yaml::String(String::from(key)))
+        .ok_or(anyhow!("key {} not found", key))?
+        .as_bool(),
+    )
+  }
+
+  fn get_u16(&self, key: &str) -> Result<Option<u16>> {
+    Ok(
+      self
+        .get(&Yaml::String(String::from(key)))
+        .ok_or(anyhow!("key {} not found", key))?
+        .as_i64()
+        .map(|u| u as u16),
+    )
   }
 
   fn get_when_notify(&self) -> Result<Option<WhenNotify>> {
@@ -271,9 +375,33 @@ impl YamlTasksScheduler for Yaml {
     }
   }
 
+  fn get_mail(&self) -> Result<Option<Mail>> {
+    if let Some(mail) = self.as_hash() {
+      mail.get_mail()
+    } else {
+      Ok(None)
+    }
+  }
+
   fn get_string(&self, key: &str) -> Result<Option<String>> {
     if let Some(string) = self.as_hash() {
       string.get_string(key)
+    } else {
+      Ok(None)
+    }
+  }
+
+  fn get_bool(&self, key: &str) -> Result<Option<bool>> {
+    if let Some(b) = self.as_hash() {
+      b.get_bool(key)
+    } else {
+      Ok(None)
+    }
+  }
+
+  fn get_u16(&self, key: &str) -> Result<Option<u16>> {
+    if let Some(b) = self.as_hash() {
+      b.get_u16(key)
     } else {
       Ok(None)
     }
