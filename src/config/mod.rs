@@ -155,6 +155,10 @@ impl Notification {
     &self.print
   }
 
+  pub fn email(&self) -> &Option<Mail> {
+    &self.mail
+  }
+
   pub fn when(&self) -> &WhenNotify {
     &self.when
   }
@@ -199,6 +203,17 @@ impl Notification {
       }
       if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
         eprintln!("Can't use slack notification: {}", e);
+      }
+    }
+
+    if let Some(email) = self.email() {
+      if let Some(when) = email.when() {
+        if !when.should_notify(&WhenNotify::TaskEnd) {
+          return;
+        }
+      }
+      if let Err(e) = crate::notification::notification_email(&email, msg.as_str()) {
+        eprintln!("Can't use email notification: {}", e);
       }
     }
   }
@@ -305,40 +320,44 @@ impl Mail {
       to,
       subject,
       smtp,
-      when
+      when,
     }
   }
 
-  pub fn get_from(&self) -> &(String, String) {
+  pub fn from(&self) -> &(String, String) {
     &self.from
   }
 
-  pub fn get_to(&self) -> &Vec<(String, String)> {
+  pub fn to(&self) -> &Vec<(String, String)> {
     &self.to
   }
 
-  pub fn get_subject(&self) -> &String {
+  pub fn subject(&self) -> &String {
     &self.subject
   }
 
-  pub fn get_smtp_hostname(&self) -> &String {
+  pub fn smtp_hostname(&self) -> &String {
     &self.smtp.hostname
   }
 
-  pub fn get_smtp_port(&self) -> u16 {
+  pub fn smtp_port(&self) -> u16 {
     self.smtp.port
   }
 
-  pub fn get_smtp_username(&self) -> &String {
+  pub fn smtp_username(&self) -> &String {
     &self.smtp.username
   }
 
-  pub fn get_smtp_secret(&self) -> &String {
+  pub fn smtp_secret(&self) -> &String {
     &self.smtp.secret
   }
 
-  pub fn get_smtp_tls(&self) -> bool {
+  pub fn smtp_tls(&self) -> bool {
     self.smtp.tls
+  }
+
+  pub fn when(&self) -> &Option<WhenNotify> {
+    &self.when
   }
 }
 
