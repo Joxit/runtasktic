@@ -2,6 +2,7 @@ pub use crate::config::task::Task;
 use crate::config::yaml_trait::YamlTasksScheduler;
 use anyhow::{anyhow, Result};
 use std::collections::HashMap;
+use tokio::runtime::Runtime;
 use yaml_rust::YamlLoader;
 
 mod task;
@@ -206,15 +207,23 @@ impl Notification {
       }
     }
 
-    if let Some(email) = self.email() {
+    if let Some(email) = self.email().clone() {
       if let Some(when) = email.when() {
         if !when.should_notify(&WhenNotify::TaskEnd) {
           return;
         }
       }
-      if let Err(e) = crate::notification::notification_email(&email, msg.as_str()) {
-        eprintln!("Can't use email notification: {}", e);
-      }
+
+      match Runtime::new() {
+        Ok(rt) => {
+          rt.block_on(async {
+            if let Err(e) = crate::notification::notification_email(&email, msg.as_str()).await {
+              eprintln!("Can't use email notification: {}", e);
+            }
+          });
+        }
+        Err(e) => eprint!("Can't use email notification: {}", e),
+      };
     }
   }
 
