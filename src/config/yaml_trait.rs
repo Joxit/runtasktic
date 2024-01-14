@@ -36,6 +36,7 @@ const HOSTNAME_KEY: &str = "hostname";
 const PORT_KEY: &str = "port";
 const SECRET_KEY: &str = "secret";
 const TLS_KEY: &str = "tls";
+const DEFAULT_SUBJECT: &str = "Runtasktik: task ended";
 
 pub trait YamlTasksScheduler {
   fn get_tasks(&self) -> Result<HashMap<String, Task>>;
@@ -54,9 +55,13 @@ pub trait YamlTasksScheduler {
   fn get_messages(&self) -> Result<Messages>;
   fn get_name_and_address(&self) -> Result<(String, String)> {
     Ok((
-      self.get_string(NAME_KEY)?.unwrap_or(String::from("")),
       self
-        .get_string(ADDRESS_KEY)?
+        .get_string(NAME_KEY)
+        .unwrap_or(None)
+        .unwrap_or(String::from("")),
+      self
+        .get_string(ADDRESS_KEY)
+        .unwrap_or(None)
         .ok_or(anyhow!("email address is required"))?,
     ))
   }
@@ -215,11 +220,16 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
         .ok_or(anyhow!("email.smtp is required"))?
       {
         Yaml::Hash(hash) => MailSMTP::new(
-          hash.get_string(HOSTNAME_KEY)?.ok_or(anyhow!(""))?,
-          hash.get_u16(PORT_KEY)?.ok_or(anyhow!(""))?,
-          hash.get_string(USERNAME_KEY)?.ok_or(anyhow!(""))?,
-          hash.get_string(SECRET_KEY)?.ok_or(anyhow!(""))?,
-          hash.get_bool(TLS_KEY)?.unwrap_or(true),
+          hash
+            .get_string(HOSTNAME_KEY)
+            .unwrap_or(None)
+            .ok_or(anyhow!("Missing email.smtp.hostname value"))?,
+          hash.get_u16(PORT_KEY).unwrap_or(None).unwrap_or(587),
+          hash.get_string(USERNAME_KEY)?.unwrap_or(from.1.clone()),
+          hash
+            .get_string(SECRET_KEY)?
+            .ok_or(anyhow!("Missing email.smtp.secret value"))?,
+          hash.get_bool(TLS_KEY).unwrap_or(None).unwrap_or(true),
         ),
         _ => bail!("email.smtp must be an object."),
       };
@@ -228,8 +238,9 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
         from,
         to,
         mail
-          .get_string(SUBJECT_KEY)?
-          .unwrap_or(format!("Runtasktik: task ended")),
+          .get_string(SUBJECT_KEY)
+          .unwrap_or(None)
+          .unwrap_or(DEFAULT_SUBJECT.to_string()),
         smtp,
         mail.get_when_notify()?,
       )));
@@ -525,5 +536,46 @@ mod test {
     );
     assert!(yaml.get_tasks().is_ok());
     assert_eq!(yaml.get_tasks().unwrap(), expected);
+  }
+
+  #[test]
+  pub fn get_email_notifiaction_default_values() {
+    let yaml = YamlLoader::load_from_str(
+      "
+    notification:
+      email:
+        from: sender@example.com
+        to: receiver@example.com
+        smtp:
+          hostname: smtp.example.com
+          secret: secret-password
+    ",
+    )
+    .unwrap();
+    let yaml = yaml.first().unwrap();
+    let smtp = MailSMTP::new(
+      "smtp.example.com".to_string(),
+      587,
+      "sender@example.com".to_string(),
+      "secret-password".to_string(),
+      true,
+    );
+    let mail = Mail::new(
+      ("".to_string(), "sender@example.com".to_string()),
+      vec![("".to_string(), "receiver@example.com".to_string())],
+      DEFAULT_SUBJECT.to_string(),
+      smtp,
+      None,
+    );
+    assert!(
+      yaml.get_notification().is_ok(),
+      "{:?}",
+      yaml.get_notification().err()
+    );
+    assert!(yaml.get_notification().unwrap().is_some());
+    assert_eq!(
+      yaml.get_notification().unwrap().unwrap().email(),
+      &Some(mail)
+    );
   }
 }
