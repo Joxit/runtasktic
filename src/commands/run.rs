@@ -10,6 +10,7 @@ use libc::{SIGHUP, SIG_IGN};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use tokio::runtime::Runtime;
 
 #[derive(Parser, Debug)]
 pub struct Run {
@@ -66,6 +67,7 @@ impl Run {
   }
 
   fn run(&self, config_path: &Path, starts: &Vec<String>) -> Result<()> {
+    let rt = Runtime::new()?;
     let yaml = fs::read_to_string(config_path)
       .with_context(|| format!("Can't read the config file {}", config_path.display()))?;
 
@@ -159,8 +161,11 @@ impl Run {
               graph_iter.mark_done(id);
               processes[id] = None;
 
-              if let Some(notification) = config.notification() {
-                notification.notify_task_end(config.tasks().get(&label).unwrap(), exit);
+              if let Some(notification) = config.notification().clone() {
+                let task = config.tasks().get(&label).unwrap().clone();
+                rt.spawn(async move {
+                  notification.notify_task_end(&task, exit).await;
+                });
               }
               let on_failure = config.tasks().get(&label).unwrap().on_failure().as_ref();
 
@@ -179,8 +184,12 @@ impl Run {
       }
     }
 
-    if let Some(notification) = config.notification() {
-      notification.notify_all_tasks_end(exit_success, exit_failure, ask_for_exit);
+    if let Some(notification) = config.notification().clone() {
+      rt.spawn(async move {
+        notification
+          .notify_all_tasks_end(exit_success, exit_failure, ask_for_exit)
+          .await;
+      });
     }
 
     Ok(())

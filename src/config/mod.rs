@@ -2,7 +2,6 @@ pub use crate::config::task::Task;
 use crate::config::yaml_trait::YamlTasksScheduler;
 use anyhow::{anyhow, Result};
 use std::collections::HashMap;
-use tokio::runtime::Runtime;
 use yaml_rust::YamlLoader;
 
 mod task;
@@ -168,7 +167,7 @@ impl Notification {
     &self.messages
   }
 
-  pub fn notify_task_end(&self, task: &Task, status_code: std::process::ExitStatus) {
+  pub async fn notify_task_end(&self, task: &Task, status_code: std::process::ExitStatus) {
     if !self.when().should_notify(&WhenNotify::TaskEnd) {
       return;
     }
@@ -213,21 +212,13 @@ impl Notification {
           return;
         }
       }
-
-      match Runtime::new() {
-        Ok(rt) => {
-          rt.block_on(async {
-            if let Err(e) = crate::notification::notification_email(&email, msg.as_str()).await {
-              eprintln!("Can't use email notification: {}", e);
-            }
-          });
-        }
-        Err(e) => eprint!("Can't use email notification: {}", e),
-      };
-    }
+      if let Err(e) = crate::notification::notification_email(&email, msg.as_str()).await {
+        eprintln!("Can't use email notification: {}", e);
+      }
+    };
   }
 
-  pub fn notify_all_tasks_end(&self, success: i32, failures: i32, failed: bool) {
+  pub async fn notify_all_tasks_end(&self, success: i32, failures: i32, failed: bool) {
     if !self.when().should_notify(&WhenNotify::End) {
       return;
     }
@@ -261,6 +252,17 @@ impl Notification {
         eprintln!("Can't use slack notification: {}", e);
       }
     }
+
+    if let Some(email) = self.email().clone() {
+      if let Some(when) = email.when() {
+        if !when.should_notify(&WhenNotify::End) {
+          return;
+        }
+      }
+      if let Err(e) = crate::notification::notification_email(&email, msg.as_str()).await {
+        eprintln!("Can't use email notification: {}", e);
+      }
+    };
   }
 }
 

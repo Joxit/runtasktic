@@ -9,6 +9,7 @@ use libc::{SIGHUP, SIG_IGN};
 use std::fs;
 use std::path::PathBuf;
 use std::process::{exit, Command, Stdio};
+use tokio::runtime::Runtime;
 
 #[derive(Parser, Debug)]
 pub struct Exec {
@@ -71,6 +72,7 @@ impl Exec {
   }
 
   fn run(&self) -> Result<()> {
+    let rt = Runtime::new()?;
     let (config, path) = if Some(PathBuf::from("-")) == self.config {
       (Config::default(), format!("-"))
     } else if let Some(path) = &self.config {
@@ -107,8 +109,10 @@ impl Exec {
       .with_context(|| format!("Can't run command `{}`", cmd_line))?;
 
     let exit = child.wait().unwrap();
-    if let Some(notification) = config.notification() {
-      notification.notify_task_end(&task, exit);
+    if let Some(notification) = config.notification().clone() {
+      rt.spawn(async move {
+        notification.notify_task_end(&task, exit).await;
+      });
     }
 
     Ok(())
