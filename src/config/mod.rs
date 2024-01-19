@@ -184,34 +184,19 @@ impl Notification {
     let msg = msg.replace("{task.short_cmd}", &short_cmd);
     let msg = msg.replace("{task.status_code}", &format!("{}", status_code));
 
-    if let Some(print) = self.print() {
-      if let Some(when) = print.when() {
-        if !when.should_notify(&WhenNotify::TaskEnd) {
-          return;
-        }
-      }
+    if let Some(print) = self.print().notify(&WhenNotify::TaskEnd) {
       if let Err(e) = crate::notification::notification_print(&print, msg.as_str()) {
         eprintln!("Can't use print notification: {}", e);
       }
     }
 
-    if let Some(slack) = self.slack() {
-      if let Some(when) = slack.when() {
-        if !when.should_notify(&WhenNotify::TaskEnd) {
-          return;
-        }
-      }
+    if let Some(slack) = self.slack().notify(&WhenNotify::TaskEnd) {
       if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
         eprintln!("Can't use slack notification: {}", e);
       }
     }
 
-    if let Some(email) = self.email().clone() {
-      if let Some(when) = email.when() {
-        if !when.should_notify(&WhenNotify::TaskEnd) {
-          return;
-        }
-      }
+    if let Some(email) = self.email().notify(&WhenNotify::TaskEnd) {
       if let Err(e) = crate::notification::notification_email(&email, msg.as_str()).await {
         eprintln!("Can't use email notification: {}", e);
       }
@@ -231,34 +216,19 @@ impl Notification {
     let msg = msg.replace("{resume.success}", &format!("{}", success));
     let msg = msg.replace("{resume.failures}", &format!("{}", failures));
 
-    if let Some(print) = self.print() {
-      if let Some(when) = print.when() {
-        if !when.should_notify(&WhenNotify::End) {
-          return;
-        }
-      }
+    if let Some(print) = self.print().notify(&WhenNotify::End) {
       if let Err(e) = crate::notification::notification_print(&print, msg.as_str()) {
         eprintln!("Can't use print notification: {}", e);
       }
     }
 
-    if let Some(slack) = self.slack() {
-      if let Some(when) = slack.when() {
-        if !when.should_notify(&WhenNotify::End) {
-          return;
-        }
-      }
+    if let Some(slack) = self.slack().notify(&WhenNotify::End) {
       if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
         eprintln!("Can't use slack notification: {}", e);
       }
     }
 
-    if let Some(email) = self.email().clone() {
-      if let Some(when) = email.when() {
-        if !when.should_notify(&WhenNotify::End) {
-          return;
-        }
-      }
+    if let Some(email) = self.email().notify(&WhenNotify::End) {
       if let Err(e) = crate::notification::notification_email(&email, msg.as_str()).await {
         eprintln!("Can't use email notification: {}", e);
       }
@@ -298,10 +268,6 @@ impl Slack {
   pub fn username(&self) -> &Option<String> {
     &self.username
   }
-
-  pub fn when(&self) -> &Option<WhenNotify> {
-    &self.when
-  }
 }
 
 impl Print {
@@ -311,10 +277,6 @@ impl Print {
 
   pub fn output(&self) -> &String {
     &self.output
-  }
-
-  pub fn when(&self) -> &Option<WhenNotify> {
-    &self.when
   }
 }
 
@@ -366,10 +328,6 @@ impl Mail {
   pub fn smtp_tls(&self) -> bool {
     self.smtp.tls
   }
-
-  pub fn when(&self) -> &Option<WhenNotify> {
-    &self.when
-  }
 }
 
 impl MailSMTP {
@@ -393,6 +351,46 @@ impl Default for OnFailure {
 impl WhenNotify {
   pub fn should_notify(&self, when: &WhenNotify) -> bool {
     self != &WhenNotify::Never && (self == &WhenNotify::Always || self == when)
+  }
+}
+
+trait When {
+  fn when(&self) -> &Option<WhenNotify>;
+}
+
+impl When for Print {
+  fn when(&self) -> &Option<WhenNotify> {
+    &self.when
+  }
+}
+
+impl When for Slack {
+  fn when(&self) -> &Option<WhenNotify> {
+    &self.when
+  }
+}
+
+impl When for Mail {
+  fn when(&self) -> &Option<WhenNotify> {
+    &self.when
+  }
+}
+
+trait Notify {
+  fn notify(&self, when: &WhenNotify) -> Self;
+}
+
+impl<T: Clone + When> Notify for Option<T> {
+  fn notify(&self, state: &WhenNotify) -> Self {
+    if let Some(it) = self {
+      if let Some(when) = it.when() {
+        if !when.should_notify(state) {
+          return None;
+        }
+      }
+      return Some(it.clone());
+    }
+    None
   }
 }
 
