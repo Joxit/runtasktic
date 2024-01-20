@@ -8,9 +8,11 @@ use cron::Schedule;
 use libc::{fork, signal};
 use libc::{SIGHUP, SIG_IGN};
 use std::fs;
+use std::future::IntoFuture;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use tokio::runtime::Runtime;
+use tokio::task::JoinHandle;
 
 #[derive(Parser, Debug)]
 pub struct Run {
@@ -109,6 +111,7 @@ impl Run {
       processes.push(None);
     }
 
+    let mut joins: Vec<JoinHandle<()>> = vec![];
     let mut exit_success = 0;
     let mut exit_failure = 0;
     let mut ask_for_exit = false;
@@ -163,9 +166,14 @@ impl Run {
 
               if let Some(notification) = config.notification().clone() {
                 let task = config.tasks().get(&label).unwrap().clone();
-                rt.spawn(async move {
+                let join = rt.spawn(async move {
                   notification.notify_task_end(&task, exit).await;
                 });
+                joins.push(join);
+                joins = joins
+                  .into_iter()
+                  .filter(|j| !j.is_finished())
+                  .collect::<Vec<JoinHandle<()>>>();
               }
               let on_failure = config.tasks().get(&label).unwrap().on_failure().as_ref();
 
@@ -184,12 +192,12 @@ impl Run {
       }
     }
 
+    for join in joins.into_iter() {
+      rt.block_on(join.into_future())?;
+    }
+
     if let Some(notification) = config.notification().clone() {
-      rt.spawn(async move {
-        notification
-          .notify_all_tasks_end(exit_success, exit_failure, ask_for_exit)
-          .await;
-      });
+      rt.block_on(notification.notify_all_tasks_end(exit_success, exit_failure, ask_for_exit));
     }
 
     Ok(())

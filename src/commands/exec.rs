@@ -110,9 +110,7 @@ impl Exec {
 
     let exit = child.wait().unwrap();
     if let Some(notification) = config.notification().clone() {
-      rt.spawn(async move {
-        notification.notify_task_end(&task, exit).await;
-      });
+      rt.block_on(notification.notify_task_end(&task, exit));
     }
 
     Ok(())
