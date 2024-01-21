@@ -2,6 +2,7 @@ use crate::config::*;
 use anyhow::{anyhow, bail, ensure, Result};
 use linked_hash_map::LinkedHashMap;
 use std::collections::HashMap;
+use std::env::var as get_env;
 use yaml_rust::Yaml;
 
 const TASKS_KEY: &str = "tasks";
@@ -38,6 +39,14 @@ const SECRET_KEY: &str = "secret";
 const TLS_KEY: &str = "tls";
 const DEFAULT_SUBJECT: &str = "Runtasktik: task ended";
 
+const ENV_NOTIFICATION_SLACK_URL: &str = "RUNTASKTIK_NOTIFICATION_SLACK_URL";
+const ENV_NOTIFICATION_SLACK_CHANNEL: &str = "RUNTASKTIK_NOTIFICATION_SLACK_CHANNEL";
+const ENV_NOTIFICATION_SLACK_USERNAME: &str = "RUNTASKTIK_NOTIFICATION_SLACK_USERNAME";
+
+const ENV_NOTIFICATION_EMAIL_SMTP_HOSTNAME: &str = "RUNTASKTIK_NOTIFICATION_EMAIL_SMTP_HOSTNAME";
+const ENV_NOTIFICATION_EMAIL_SMTP_USERNAME: &str = "RUNTASKTIK_NOTIFICATION_EMAIL_SMTP_USERNAME";
+const ENV_NOTIFICATION_EMAIL_SMTP_SECRET: &str = "RUNTASKTIK_NOTIFICATION_EMAIL_SMTP_SECRET";
+
 pub trait YamlTasksScheduler {
   fn get_tasks(&self) -> Result<HashMap<String, Task>>;
   fn get_commands(&self) -> Vec<String>;
@@ -48,6 +57,14 @@ pub trait YamlTasksScheduler {
   fn get_print(&self) -> Result<Option<Print>>;
   fn get_mail(&self) -> Result<Option<Mail>>;
   fn get_string(&self, key: &str) -> Result<Option<String>>;
+  fn get_env_or_key_string(&self, env: &str, key: &str) -> Result<Option<String>> {
+    let value = get_env(env)
+      .map(|s| if s.is_empty() { None } else { Some(s) })
+      .unwrap_or(None)
+      .or(self.get_string(key)?);
+
+    Ok(value)
+  }
   fn get_bool(&self, key: &str) -> Result<Option<bool>>;
   fn get_u16(&self, key: &str) -> Result<Option<u16>>;
   fn get_when_notify(&self) -> Result<Option<WhenNotify>>;
@@ -155,12 +172,12 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
     if let Some(slack) = self.get(&Yaml::String(String::from(SLACK_KEY))) {
       return Ok(Some(Slack::new(
         slack
-          .get_string(URL_KEY)?
+          .get_env_or_key_string(ENV_NOTIFICATION_SLACK_URL, URL_KEY)?
           .ok_or(anyhow!("Slack url is required!"))?,
         slack
-          .get_string(CHANNEL_KEY)?
+          .get_env_or_key_string(ENV_NOTIFICATION_SLACK_CHANNEL, CHANNEL_KEY)?
           .ok_or(anyhow!("Slack channel is required!"))?,
-        slack.get_string(USERNAME_KEY)?,
+        slack.get_env_or_key_string(ENV_NOTIFICATION_SLACK_USERNAME, USERNAME_KEY)?,
         slack.get_string(EMOJI_KEY)?,
         slack.get_when_notify()?,
       )));
@@ -221,13 +238,13 @@ impl YamlTasksScheduler for LinkedHashMap<Yaml, Yaml> {
       {
         Yaml::Hash(hash) => MailSMTP::new(
           hash
-            .get_string(HOSTNAME_KEY)
+            .get_env_or_key_string(ENV_NOTIFICATION_EMAIL_SMTP_HOSTNAME, HOSTNAME_KEY)
             .unwrap_or(None)
             .ok_or(anyhow!("Missing email.smtp.hostname value"))?,
           hash.get_u16(PORT_KEY).unwrap_or(None).unwrap_or(587),
-          hash.get_string(USERNAME_KEY)?.unwrap_or(from.1.clone()),
+          hash.get_env_or_key_string(ENV_NOTIFICATION_EMAIL_SMTP_USERNAME, USERNAME_KEY)?.unwrap_or(from.1.clone()),
           hash
-            .get_string(SECRET_KEY)?
+            .get_env_or_key_string(ENV_NOTIFICATION_EMAIL_SMTP_SECRET, SECRET_KEY)?
             .ok_or(anyhow!("Missing email.smtp.secret value"))?,
           hash.get_bool(TLS_KEY).unwrap_or(None).unwrap_or(true),
         ),
