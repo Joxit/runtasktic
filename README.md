@@ -181,18 +181,35 @@ tasks:
       - echo End b
     depends_on: [a] # This task will be executed after a.
 notification:
+  messages:
+    task_end: Task {task.id} ended with status code {task.status_code} # Availables templates are {task.id}, {task.short_cmd}, {task.full_cmd}, {task.status_code}, {hostname}, {env.*} for environment variables
+    all_task_end: All tasks ended. Got {resume.success} success and {resume.failures} failure. # Availables templates are {resulme.success}, {resume.failures}, {hostname}, {env.*} for environment variables
+    task_failed: Tasks ended prematurely. Got {resume.success} success and {resume.failures} failure. Contains one critical failure. # Availables templates are {resulme.success}, {resume.failures}, {hostname}, {env.*} for environment variables. Triggered when `on_failure: exit` is used.
+  when: always # `always`, `task-end`, `end` or `never` when should I send notification
   slack: # send notification to slack
     url: https://hooks.slack.com/services/XXXXX/XXXXX/XXXXX # The slack server url
     channel: '#channel' # channel to send message
     emoji: ':rocket:' # emoji to use (optional)
     username: runtasktic # the username to use, default is runtasktic.
+    when: always # `always`, `task-end`, `end` or `never` when should I send notification
   print:
     output: stderr # print notification on `stdout`, `stedrr`, `none` or `/custom/path`
-  when: always # `always`, `task-end`, `end` or `never` when should I send notification
-  messages:
-    task_end: Task {task.id} ended with status code {task.status_code} # Availables templates are {task.id}, {task.short_cmd}, {task.full_cmd}, {task.status_code}, {hostname}, {env.*} for environment variables
-    all_task_end: All tasks ended. Got {resume.success} success and {resume.failures} failure. # Availables templates are {resulme.success}, {resume.failures}, {hostname}, {env.*} for environment variables
-    task_failed: Tasks ended prematurely. Got {resume.success} success and {resume.failures} failure. Contains one critical failure. # Availables templates are {resulme.success}, {resume.failures}, {hostname}, {env.*} for environment variables. Triggered when `on_failure: exit` is used.
+    when: always # `always`, `task-end`, `end` or `never` when should I send notification
+  email:
+    from:
+      name: Sender Name # Sender's name, default is empty
+      address: sender@example.com # Sender's email
+    to:
+      - name: Receiver Name # Receiver's name, default is empty
+        address: receiver@example.com # Receiver's email
+    subject: 'Runtasktik: task ended' # Default email's subject
+    smtp:
+      hostname: smtp.example.com # SMTP hostname
+      port: 587 # SMTP port, default 587 
+      username: sender@example.com # SMTP username, default is Sender's email
+      secret: secret-password # SMTP password
+      tls: true # Use TLS connexion, default is true
+    when: always # `always`, `task-end`, `end` or `never` when should I send notification
 
 concurrency: 2 # how many task can run simultaneously
 working_dir: /custom/directory # Where is the workind directory, default is where your are using runtasktic
@@ -200,6 +217,17 @@ stdout: none # `none`, `/custom/path` where should I save standard logs
 stderr: /var/log/runtasktic.err # `none`, `/custom/path` where should I save error logs
 on_failure: continue # `continue` or `exit` default behaviour when a task fail, default is `continue`
 ```
+
+### Override configuration
+
+You can override some of your configuration with environment variables. These variables start with `RUNTASKTIK_*`, all dots are replaced by underscores and everything is uppercase.
+Available ones are:
+- `RUNTASKTIK_NOTIFICATION_SLACK_URL`
+- `RUNTASKTIK_NOTIFICATION_SLACK_CHANNEL`
+- `RUNTASKTIK_NOTIFICATION_SLACK_USERNAME`
+- `RUNTASKTIK_NOTIFICATION_EMAIL_SMTP_HOSTNAME`
+- `RUNTASKTIK_NOTIFICATION_EMAIL_SMTP_USERNAME`
+- `RUNTASKTIK_NOTIFICATION_EMAIL_SMTP_SECRET`
 
 ### Configuration examples
 
