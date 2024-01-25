@@ -19,7 +19,7 @@ Describe your tasks in a YAML file, execute all of them with runtasktic in foreg
 
 ## How to install runtasktic ?
 
-You can install runtasktic via command line or by downloading the prebuild version on github.
+You can install runtasktic via command line or by downloading the prebuild version on github. :warning: the project uses libc, the prebuilt version will work only on OS using the same libc version as GitHub Action at the build time.
 
 ```bash
 mkdir ~/bin
