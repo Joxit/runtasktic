@@ -126,7 +126,7 @@ impl Exec {
 
   fn default_config_path(&self) -> Option<PathBuf> {
     if let Ok(home) = std::env::var("HOME") {
-      vec![".runtasktic.yml", ".runtasktic.yaml"]
+      vec![".runtasktic", ".runtasktic.yml", ".runtasktic.yaml"]
         .iter()
         .map(|path| PathBuf::from(&home).join(path))
         .find(|path| path.as_path().exists())
