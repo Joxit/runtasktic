@@ -74,11 +74,13 @@ mod test {
 
   #[test]
   fn replace_environments() {
-    set_env("RUNTASKTIK", "value for RUNTASKTIK environment");
-    set_env("RUNTASKTIK_test", "RUNTASKTIK_test value");
-    set_env("RUNTASKTIK_empty", "");
-    set_env("RUNTASKTIK_with_number_0_1_2", "0 1 2 3 4");
-    remove_env("RUNTASKTIK_undefined");
+    unsafe {
+      set_env("RUNTASKTIK", "value for RUNTASKTIK environment");
+      set_env("RUNTASKTIK_test", "RUNTASKTIK_test value");
+      set_env("RUNTASKTIK_empty", "");
+      set_env("RUNTASKTIK_with_number_0_1_2", "0 1 2 3 4");
+      remove_env("RUNTASKTIK_undefined");
+    }
 
     assert_eq!(
       super::replace_environments("Test for {env.RUNTASKTIK}"),
