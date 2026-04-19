@@ -34,6 +34,9 @@ notification:
     channel: '#channel'
     emoji: ':rocket:'
     username: runtasktic
+  discord:
+    url: https://discord.com/api/webhooks/XXXXX/XXXXX
+    username: runtasktic
   print:
     output: stderr
   email:

@@ -192,6 +192,9 @@ notification:
     emoji: ':rocket:' # emoji to use (optional)
     username: runtasktic # the username to use, default is runtasktic.
     when: always # `always`, `task-end`, `end` or `never` when should I send notification
+  discord: # send notification to discord
+    url: https://discord.com/api/webhooks/XXXXX/XXXXX # The discord server url
+    username: runtasktic # the username to use, default is runtasktic.
   print:
     output: stderr # print notification on `stdout`, `stedrr`, `none` or `/custom/path`
     when: always # `always`, `task-end`, `end` or `never` when should I send notification
@@ -228,6 +231,8 @@ Available ones are:
 - `RUNTASKTIK_NOTIFICATION_EMAIL_SMTP_HOSTNAME`
 - `RUNTASKTIK_NOTIFICATION_EMAIL_SMTP_USERNAME`
 - `RUNTASKTIK_NOTIFICATION_EMAIL_SMTP_SECRET`
+- `RUNTASKTIK_NOTIFICATION_DISCORD_URL`
+- `RUNTASKTIK_NOTIFICATION_DISCORD_USERNAME`
 
 ### Configuration examples
 

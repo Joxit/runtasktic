@@ -21,6 +21,7 @@ pub struct Config {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Notification {
   slack: Option<Slack>,
+  discord: Option<Discord>,
   print: Option<Print>,
   mail: Option<Mail>,
   when: WhenNotify,
@@ -32,6 +33,13 @@ pub struct Slack {
   url: String,
   channel: String,
   emoji: Option<String>,
+  username: Option<String>,
+  when: Option<WhenNotify>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Discord {
+  url: String,
   username: Option<String>,
   when: Option<WhenNotify>,
 }
@@ -133,6 +141,7 @@ impl Config {
 impl Notification {
   pub fn new(
     slack: Option<Slack>,
+    discord: Option<Discord>,
     print: Option<Print>,
     mail: Option<Mail>,
     when: WhenNotify,
@@ -140,6 +149,7 @@ impl Notification {
   ) -> Notification {
     Notification {
       slack,
+      discord,
       print,
       mail,
       when,
@@ -149,6 +159,10 @@ impl Notification {
 
   pub fn slack(&self) -> &Option<Slack> {
     &self.slack
+  }
+
+  pub fn discord(&self) -> &Option<Discord> {
+    &self.discord
   }
 
   pub fn print(&self) -> &Option<Print> {
@@ -193,6 +207,12 @@ impl Notification {
     if let Some(slack) = self.slack().notify(&WhenNotify::TaskEnd) {
       if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
         eprintln!("Can't use slack notification: {}", e);
+      }
+    }
+
+    if let Some(discord) = self.discord().notify(&WhenNotify::TaskEnd) {
+      if let Err(e) = crate::notification::post_discord(&discord, msg.as_str()) {
+        eprintln!("Can't use discord notification: {}", e);
       }
     }
 
@@ -263,6 +283,28 @@ impl Slack {
 
   pub fn emoji(&self) -> &Option<String> {
     &self.emoji
+  }
+
+  pub fn username(&self) -> &Option<String> {
+    &self.username
+  }
+}
+
+impl Discord {
+  pub fn new(
+    url: String,
+    username: Option<String>,
+    when: Option<WhenNotify>,
+  ) -> Discord {
+    Discord {
+      url,
+      username,
+      when,
+    }
+  }
+
+  pub fn url(&self) -> &String {
+    &self.url
   }
 
   pub fn username(&self) -> &Option<String> {
@@ -365,6 +407,11 @@ impl When for Print {
 }
 
 impl When for Slack {
+  fn when(&self) -> &Option<WhenNotify> {
+    &self.when
+  }
+}
+impl When for Discord {
   fn when(&self) -> &Option<WhenNotify> {
     &self.when
   }

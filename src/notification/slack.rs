@@ -15,6 +15,7 @@ pub fn post_slack(slack: &Slack, message: &str) -> Result<(), String> {
   }
 
   let resp = attohttpc::post(slack.url())
+    .header_append("Content-Type", "application/json")
     .text(content.dump())
     .send()
     .unwrap();

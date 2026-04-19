@@ -134,6 +134,11 @@ fn notification_yaml() {
     Some(":rocket:".to_string()),
     None,
   );
+  let discord = Discord::new(
+    "https://discord.com/api/webhooks/XXXXX/XXXXX".to_string(),
+    Some("runtasktic".to_string()),
+    None,
+  );
   let print = Print::new("stderr".to_string(), None);
   let email = Mail::new(
     ("Sender Name".to_string(), "sender@example.com".to_string()),
@@ -153,6 +158,7 @@ fn notification_yaml() {
   );
   let notification = Notification::new(
     Some(slack),
+    Some(discord),
     Some(print),
     Some(email),
     WhenNotify::Always,
