@@ -1,12 +1,12 @@
 use crate::config::{Config, OnFailure};
 use crate::fst::*;
 use crate::utils::traits::{CommandConfig, WaitSchedule};
-use anyhow::{anyhow, bail, ensure, Context, Result};
+use anyhow::{Context, Result, anyhow, bail, ensure};
 use chrono::Local;
 use clap::Parser;
 use cron::Schedule;
+use libc::{SIG_IGN, SIGHUP};
 use libc::{fork, signal};
-use libc::{SIGHUP, SIG_IGN};
 use std::fs;
 use std::future::IntoFuture;
 use std::path::{Path, PathBuf};

@@ -1,14 +1,14 @@
 use crate::config::Config;
 use crate::utils::traits::{CommandConfig, WaitSchedule};
-use anyhow::{anyhow, ensure, Context, Result};
+use anyhow::{Context, Result, anyhow, ensure};
 use chrono::Local;
 use clap::Parser;
 use cron::Schedule;
+use libc::{SIG_IGN, SIGHUP};
 use libc::{fork, signal};
-use libc::{SIGHUP, SIG_IGN};
 use std::fs;
 use std::path::PathBuf;
-use std::process::{exit, Command, Stdio};
+use std::process::{Command, Stdio, exit};
 use tokio::runtime::Runtime;
 
 #[derive(Parser, Debug)]

@@ -1,7 +1,7 @@
 use crate::Runtasktic;
 use anyhow::Result;
 use clap::{CommandFactory, Parser};
-use clap_complete::{generate, Shell};
+use clap_complete::{Shell, generate};
 
 #[derive(Parser, Debug)]
 pub enum Completion {
