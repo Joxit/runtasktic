@@ -13,7 +13,7 @@ pub fn post_discord(discord: &Discord, message: &str) -> Result<(), String> {
     .send()
     .unwrap();
 
-  if resp.status() != 200 {
+  if !resp.status().is_success() {
     Err(format!(
       "Notification failed: status code {} and body: {}",
       resp.status(),

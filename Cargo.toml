@@ -14,7 +14,6 @@ categories = ["command-line-utilities"]
 
 [dependencies]
 clap = { version = "^4.4", features = ["derive"] }
-yaml-rust = "^0.4"
 linked-hash-map = "^0.5"
 libc = "^0.2"
 attohttpc = { version = "^0.26", default-features = false, features = [
@@ -32,3 +31,6 @@ sha256 = "^1.4"
 anyhow = "^1.0"
 mail-send = "^0.4.6"
 tokio = "1.35.1"
+serde = "^1.0"
+serde_yaml = "^0.9"
+serde_json = "^1.0"

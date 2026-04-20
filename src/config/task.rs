@@ -1,11 +1,16 @@
 use crate::config::OnFailure;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct Task {
-  id: String,
+  #[serde(skip)]
+  pub(super) id: String,
+  #[serde(default)]
   commands: Vec<String>,
+  #[serde(default)]
   depends_on: Vec<String>,
   on_failure: Option<OnFailure>,
+  #[serde(skip)]
   state: usize,
 }
 

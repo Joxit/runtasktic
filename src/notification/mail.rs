@@ -1,11 +1,13 @@
 use crate::config::Mail;
-use anyhow::{anyhow, Result};
-use mail_send::{mail_builder::MessageBuilder, Credentials, SmtpClientBuilder};
+use anyhow::{Result, anyhow};
+use mail_send::{Credentials, SmtpClientBuilder, mail_builder::MessageBuilder};
 
 pub async fn notification_email(mail: &Mail, body: &str) -> Result<()> {
+  let from: (String, String) = mail.from().clone().into();
+  let to: Vec<(String, String)> = mail.to().clone().into();
   let message = MessageBuilder::new()
-    .from(mail.from().clone())
-    .to(mail.to().clone())
+    .from(from)
+    .to(to)
     .subject(mail.subject())
     .html_body(format!("<p>{}</p>", body))
     .text_body(body);
