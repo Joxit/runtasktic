@@ -111,6 +111,7 @@ pub enum WhenNotify {
   TaskEnd,
   End,
   Never,
+  Fail,
 }
 
 #[derive(Debug, PartialEq, Clone, serde::Deserialize)]
@@ -192,7 +193,8 @@ impl Notification {
   }
 
   pub async fn notify_task_end(&self, task: &Task, status_code: std::process::ExitStatus) {
-    if !self.when().should_notify(&WhenNotify::TaskEnd) {
+    let success = Some(status_code.success());
+    if !self.when().should_notify(&WhenNotify::TaskEnd, success) {
       return;
     }
 
@@ -208,25 +210,25 @@ impl Notification {
     let msg = msg.replace("{task.short_cmd}", &short_cmd);
     let msg = msg.replace("{task.status_code}", &format!("{}", status_code));
 
-    if let Some(print) = self.print().notify(&WhenNotify::TaskEnd) {
+    if let Some(print) = self.print().notify(&WhenNotify::TaskEnd, success) {
       if let Err(e) = crate::notification::notification_print(&print, msg.as_str()) {
         eprintln!("Can't use print notification: {}", e);
       }
     }
 
-    if let Some(slack) = self.slack().notify(&WhenNotify::TaskEnd) {
+    if let Some(slack) = self.slack().notify(&WhenNotify::TaskEnd, success) {
       if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
         eprintln!("Can't use slack notification: {}", e);
       }
     }
 
-    if let Some(discord) = self.discord().notify(&WhenNotify::TaskEnd) {
+    if let Some(discord) = self.discord().notify(&WhenNotify::TaskEnd, success) {
       if let Err(e) = crate::notification::post_discord(&discord, msg.as_str()) {
         eprintln!("Can't use discord notification: {}", e);
       }
     }
 
-    if let Some(email) = self.email().notify(&WhenNotify::TaskEnd) {
+    if let Some(email) = self.email().notify(&WhenNotify::TaskEnd, success) {
       if let Err(e) = crate::notification::notification_email(&email, msg.as_str()).await {
         eprintln!("Can't use email notification: {}", e);
       }
@@ -234,7 +236,8 @@ impl Notification {
   }
 
   pub async fn notify_all_tasks_end(&self, success: i32, failures: i32, failed: bool) {
-    if !self.when().should_notify(&WhenNotify::End) {
+    let has_failure = Some(failures > 0);
+    if !self.when().should_notify(&WhenNotify::End, has_failure) {
       return;
     }
     let msg = if !failed {
@@ -246,19 +249,25 @@ impl Notification {
     let msg = msg.replace("{resume.success}", &format!("{}", success));
     let msg = msg.replace("{resume.failures}", &format!("{}", failures));
 
-    if let Some(print) = self.print().notify(&WhenNotify::End) {
+    if let Some(print) = self.print().notify(&WhenNotify::End, has_failure) {
       if let Err(e) = crate::notification::notification_print(&print, msg.as_str()) {
         eprintln!("Can't use print notification: {}", e);
       }
     }
 
-    if let Some(slack) = self.slack().notify(&WhenNotify::End) {
+    if let Some(slack) = self.slack().notify(&WhenNotify::End, has_failure) {
       if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
         eprintln!("Can't use slack notification: {}", e);
       }
     }
 
-    if let Some(email) = self.email().notify(&WhenNotify::End) {
+    if let Some(discord) = self.discord().notify(&WhenNotify::End, has_failure) {
+      if let Err(e) = crate::notification::post_discord(&discord, msg.as_str()) {
+        eprintln!("Can't use discord notification: {}", e);
+      }
+    }
+
+    if let Some(email) = self.email().notify(&WhenNotify::End, has_failure) {
       if let Err(e) = crate::notification::notification_email(&email, msg.as_str()).await {
         eprintln!("Can't use email notification: {}", e);
       }
@@ -344,8 +353,11 @@ impl Default for OnFailure {
 }
 
 impl WhenNotify {
-  pub fn should_notify(&self, when: &WhenNotify) -> bool {
-    self != &WhenNotify::Never && (self == &WhenNotify::Always || self == when)
+  pub fn should_notify(&self, when: &WhenNotify, success: Option<bool>) -> bool {
+    self != &WhenNotify::Never
+      && (self == &WhenNotify::Always
+        || self == when
+        || (Some(true) == success && self == &WhenNotify::Fail))
   }
 }
 
@@ -377,14 +389,14 @@ impl When for Mail {
 }
 
 trait Notify {
-  fn notify(&self, when: &WhenNotify) -> Self;
+  fn notify(&self, when: &WhenNotify, success: Option<bool>) -> Self;
 }
 
 impl<T: Clone + When> Notify for Option<T> {
-  fn notify(&self, state: &WhenNotify) -> Self {
+  fn notify(&self, state: &WhenNotify, success: Option<bool>) -> Self {
     if let Some(it) = self {
       if let Some(when) = it.when() {
-        if !when.should_notify(state) {
+        if !when.should_notify(state, success) {
           return None;
         }
       }

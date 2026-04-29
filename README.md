@@ -185,19 +185,20 @@ notification:
     task_end: Task {task.id} ended with status code {task.status_code} # Availables templates are {task.id}, {task.short_cmd}, {task.full_cmd}, {task.status_code}, {hostname}, {env.*} for environment variables
     all_task_end: All tasks ended. Got {resume.success} success and {resume.failures} failure. # Availables templates are {resulme.success}, {resume.failures}, {hostname}, {env.*} for environment variables
     task_failed: Tasks ended prematurely. Got {resume.success} success and {resume.failures} failure. Contains one critical failure. # Availables templates are {resulme.success}, {resume.failures}, {hostname}, {env.*} for environment variables. Triggered when `on_failure: exit` is used.
-  when: always # `always`, `task-end`, `end` or `never` when should I send notification
+  when: always # `always`, `task-end`, `end`, `fail` or `never` when should I send notification
   slack: # send notification to slack
     url: https://hooks.slack.com/services/XXXXX/XXXXX/XXXXX # The slack server url
     channel: '#channel' # channel to send message
     emoji: ':rocket:' # emoji to use (optional)
     username: runtasktic # the username to use, default is runtasktic.
-    when: always # `always`, `task-end`, `end` or `never` when should I send notification
+    when: always # `always`, `task-end`, `end`, `fail` or `never` when should I send notification
   discord: # send notification to discord
     url: https://discord.com/api/webhooks/XXXXX/XXXXX # The discord server url
     username: runtasktic # the username to use, default is runtasktic.
+    when: always # `always`, `task-end`, `end`, `fail` or `never` when should I send notification
   print:
     output: stderr # print notification on `stdout`, `stedrr`, `none` or `/custom/path`
-    when: always # `always`, `task-end`, `end` or `never` when should I send notification
+    when: always # `always`, `task-end`, `end`, `fail` or `never` when should I send notification
   email:
     from:
       name: Sender Name # Sender's name, default is empty
@@ -212,7 +213,7 @@ notification:
       username: sender@example.com # SMTP username, default is Sender's email
       secret: secret-password # SMTP password
       tls: true # Use TLS connexion, default is true
-    when: always # `always`, `task-end`, `end` or `never` when should I send notification
+    when: always # `always`, `task-end`, `end`, `fail` or `never` when should I send notification
 
 concurrency: 2 # how many task can run simultaneously
 working_dir: /custom/directory # Where is the workind directory, default is where your are using runtasktic
