@@ -13,24 +13,24 @@ keywords = ["cli", "shell", "command", "task"]
 categories = ["command-line-utilities"]
 
 [dependencies]
-clap = { version = "^4.4", features = ["derive"] }
-linked-hash-map = "^0.5"
+clap = { version = "4.4", features = ["derive"] }
+linked-hash-map = "0.5"
 libc = "^0.2"
-attohttpc = { version = "^0.26", default-features = false, features = [
+attohttpc = { version = "0.30", default-features = false, features = [
   "compress",
   "rustls",
   "tls-rustls-native-roots",
 ] }
-json = "^0.12"
-hostname = "^0.3"
-regex = "^1.3"
-chrono = "^0.4"
-cron = "0.12"
-clap_complete = "^4.4"
-sha256 = "^1.4"
-anyhow = "^1.0"
-mail-send = "^0.4.6"
-tokio = "1.35.1"
-serde = "^1.0"
-serde_yaml = "^0.9"
-serde_json = "^1.0"
+json = "0.12"
+hostname = "0.4"
+regex = "1.12"
+chrono = "0.4"
+cron = "0.16"
+clap_complete = "4.6"
+sha256 = "1.6"
+anyhow = "1.0"
+mail-send = "0.6"
+tokio = "1.52"
+serde = "1.0"
+serde_yaml = "^0.9.34+deprecated"
+serde_json = "1.0"

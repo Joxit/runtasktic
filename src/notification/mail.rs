@@ -13,6 +13,7 @@ pub async fn notification_email(mail: &Mail, body: &str) -> Result<()> {
     .text_body(body);
 
   SmtpClientBuilder::new(mail.smtp_hostname(), mail.smtp_port())
+    .map_err(|e| anyhow!("Cannot configure SMTP client: {e}"))?
     .implicit_tls(mail.smtp_tls())
     .credentials(Credentials::Plain {
       username: mail.smtp_username(),
@@ -20,9 +21,9 @@ pub async fn notification_email(mail: &Mail, body: &str) -> Result<()> {
     })
     .connect()
     .await
-    .map_err(|e| anyhow!("Connection to SMTP failed: {}", e))?
+    .map_err(|e| anyhow!("Connection to SMTP failed: {e}"))?
     .send(message)
     .await
-    .map_err(|e| anyhow!("Failed to sending email: {}", e))?;
+    .map_err(|e| anyhow!("Failed to sending email: {e}"))?;
   Ok(())
 }
