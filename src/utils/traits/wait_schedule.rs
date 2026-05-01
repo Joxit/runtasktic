@@ -19,7 +19,7 @@ impl WaitSchedule<Local> for Schedule {
       .upcoming(timezone)
       .next()
       .expect("Cannot get upcoming cron date");
-
+    debug!("Schedule wait until {date}");
     std::thread::sleep(
       (date - Local::now())
         .to_std()

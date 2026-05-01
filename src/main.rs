@@ -8,6 +8,9 @@ mod fst;
 mod notification;
 mod utils;
 
+#[macro_use]
+extern crate log;
+
 #[derive(Parser, Debug)]
 #[command(name = "runtasktic", author, version, about)]
 pub struct Runtasktic {

@@ -1,8 +1,9 @@
 use crate::config::{Config, OnFailure};
 use crate::fst::*;
+use crate::utils::logger;
 use crate::utils::traits::{CommandConfig, WaitSchedule};
 use anyhow::{Context, Result, anyhow, bail, ensure};
-use chrono::Local;
+use chrono::{DateTime, Local};
 use clap::Parser;
 use cron::Schedule;
 use libc::{SIG_IGN, SIGHUP};
@@ -10,7 +11,7 @@ use libc::{fork, signal};
 use std::fs;
 use std::future::IntoFuture;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
 use tokio::runtime::Runtime;
 use tokio::task::JoinHandle;
 
@@ -30,10 +31,33 @@ pub struct Run {
   /// Schedule your tasks using cron expression.
   #[arg(long = "cron")]
   cron: Option<Schedule>,
+  #[arg(long = "verbose", short = 'v')]
+  verbose: bool,
+}
+
+struct ChildStatus {
+  child: Child,
+  start: DateTime<Local>,
+}
+
+impl ChildStatus {
+  pub fn new(child: Child) -> Self {
+    ChildStatus {
+      child,
+      start: Local::now(),
+    }
+  }
+
+  pub fn elapsed(&self) -> f64 {
+    (Local::now() - self.start).num_milliseconds() as f64 / 1000f64
+  }
 }
 
 impl Run {
   pub fn exec(&self) -> Result<()> {
+    if self.verbose {
+      logger::init_with_level(log::Level::Debug, "runtasktik::run")?;
+    }
     for config in &self.config {
       ensure!(
         config.exists(),
@@ -106,7 +130,7 @@ impl Run {
       bail!("Can't execute your configuration. There is a deadlock in your tasks !");
     }
 
-    let processes: &mut Vec<Option<std::process::Child>> = &mut vec![];
+    let processes: &mut Vec<Option<ChildStatus>> = &mut vec![];
     for _ in 0..graph.len() {
       processes.push(None);
     }
@@ -125,7 +149,7 @@ impl Run {
         .filter(|(_, reachable)| !*reachable)
         .for_each(|(state, _)| graph_iter.set_done(state));
     }
-
+    let start = Local::now();
     loop {
       if graph_iter.has_next()
         && (graph_iter.n_in_progress() < config.concurrency() || config.concurrency() < 0)
@@ -134,6 +158,7 @@ impl Run {
         let task = graph_iter.next().unwrap();
         let label = task.label().to_string();
         let cmd_line = config.tasks().get(&label).unwrap().full_command();
+        debug!("Executing task {label}");
         let child = Command::new("sh")
           .arg("-c")
           .arg(cmd_line.to_string())
@@ -143,14 +168,14 @@ impl Run {
           .working_dir(config.working_dir())?
           .spawn()
           .with_context(|| format!("Can't run command `{}`", cmd_line))?;
-        processes[task.id()] = Some(child);
+        processes[task.id()] = Some(ChildStatus::new(child));
       } else if graph_iter.is_done() {
         break;
       } else {
         let mut done = 0;
         for id in 0..processes.len() {
-          if let Some(child) = processes[id].as_mut() {
-            if let Ok(Some(exit)) = child.try_wait() {
+          if let Some(child_status) = processes[id].as_mut() {
+            if let Ok(Some(exit)) = child_status.child.try_wait() {
               let label = graph.get_state_from_id(id).label().to_string();
               let is_failure = if exit.success() {
                 exit_success = exit_success + 1;
@@ -159,6 +184,11 @@ impl Run {
                 exit_failure = exit_failure + 1;
                 true
               };
+              debug!(
+                "Task {label} finished with status code {} in {}s",
+                exit.code().unwrap_or(-255),
+                child_status.elapsed()
+              );
 
               done = done + 1;
               graph_iter.mark_done(id);
@@ -199,6 +229,9 @@ impl Run {
     if let Some(notification) = config.notification().clone() {
       rt.block_on(notification.notify_all_tasks_end(exit_success, exit_failure, ask_for_exit));
     }
+
+    let elapsed = (Local::now() - start).num_milliseconds() as f64 / 1000f64;
+    debug!("All task ended, {exit_success} success and {exit_failure} failures in {elapsed}s",);
 
     Ok(())
   }

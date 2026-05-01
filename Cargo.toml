@@ -34,3 +34,4 @@ tokio = "1.52"
 serde = "1.0"
 serde_yaml = "^0.9.34+deprecated"
 serde_json = "1.0"
+log = { version = "0.4.29", features = ["serde", "std"] }
