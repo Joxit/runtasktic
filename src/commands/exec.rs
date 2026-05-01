@@ -4,8 +4,7 @@ use anyhow::{Context, Result, anyhow, ensure};
 use chrono::Local;
 use clap::Parser;
 use cron::Schedule;
-use libc::{SIG_IGN, SIGHUP};
-use libc::{fork, signal};
+use libc::{SIG_IGN, SIGHUP, fork, signal};
 use std::fs;
 use std::path::PathBuf;
 use std::process::{Command, Stdio, exit};
@@ -27,6 +26,9 @@ pub struct Exec {
   /// Schedule your tasks using cron expression.
   #[arg(long = "cron")]
   cron: Option<Schedule>,
+  /// Set a custom name for your task, default value will be the executable name.
+  #[arg(long = "name", conflicts_with = "task")]
+  name: Option<String>,
   /// Command to execute
   #[arg()]
   command: Vec<String>,
@@ -94,7 +96,8 @@ impl Exec {
         ))?
         .clone()
     } else {
-      crate::config::Task::new(format!(""), vec![self.command.join(" ")], vec![], None)
+      let id = self.name.clone().unwrap_or(format!(""));
+      crate::config::Task::new(id, vec![self.command.join(" ")], vec![], None)
     };
     let cmd_line = task.full_command();
 
