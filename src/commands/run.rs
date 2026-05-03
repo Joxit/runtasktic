@@ -2,7 +2,7 @@ use crate::config::{Config, OnFailure};
 use crate::fst::*;
 use crate::utils::logger;
 use crate::utils::traits::{CommandConfig, WaitSchedule};
-use anyhow::{Context, Result, anyhow, bail, ensure};
+use anyhow::{Context, Result};
 use chrono::{DateTime, Local};
 use clap::Parser;
 use cron::Schedule;
@@ -112,7 +112,7 @@ impl Run {
       task.set_state(graph.add_state(task.id()));
     }
 
-    for task in config.tasks().values() {
+    for task in config.tasks.values() {
       if (task.depends_on().len() == 0 && starts.len() == 0)
         || (starts.len() > 0 && starts.contains(task.id()))
       {
@@ -120,7 +120,7 @@ impl Run {
       } else {
         for prev in task.depends_on().iter() {
           let err_msg = anyhow!("{} depends on {} but does not exists", task.id(), prev);
-          let prev_state = config.tasks().get(prev).ok_or(err_msg)?.state();
+          let prev_state = config.tasks.get(prev).ok_or(err_msg)?.state();
           graph.add_arc(prev_state, task.state());
         }
       }
@@ -152,7 +152,7 @@ impl Run {
     let start = Local::now();
     loop {
       if graph_iter.has_next()
-        && (graph_iter.n_in_progress() < config.concurrency() || config.concurrency() < 0)
+        && (graph_iter.n_in_progress() < config.concurrency || config.concurrency < 0)
         && !ask_for_exit
       {
         let task = graph_iter.next().unwrap();
@@ -163,9 +163,9 @@ impl Run {
           .arg("-c")
           .arg(cmd_line.to_string())
           .stdin(self.stdin())
-          .stdout_opt(config.stdout(), !self.background)?
-          .stderr_opt(config.stderr(), !self.background)?
-          .working_dir(config.working_dir())?
+          .stdout_opt(&config.stdout, !self.background)?
+          .stderr_opt(&config.stderr, !self.background)?
+          .working_dir(&config.working_dir)?
           .spawn()
           .with_context(|| format!("Can't run command `{}`", cmd_line))?;
         processes[task.id()] = Some(ChildStatus::new(child));
@@ -194,8 +194,8 @@ impl Run {
               graph_iter.mark_done(id);
               processes[id] = None;
 
-              if let Some(notification) = config.notification().clone() {
-                let task = config.tasks().get(&label).unwrap().clone();
+              if let Some(notification) = config.notification.clone() {
+                let task = config.tasks.get(&label).unwrap().clone();
                 let join = rt.spawn(async move {
                   notification.notify_task_end(&task, exit).await;
                 });
@@ -205,9 +205,9 @@ impl Run {
                   .filter(|j| !j.is_finished())
                   .collect::<Vec<JoinHandle<()>>>();
               }
-              let on_failure = config.tasks().get(&label).unwrap().on_failure().as_ref();
+              let on_failure = config.tasks.get(&label).unwrap().on_failure().clone();
 
-              if is_failure && on_failure.unwrap_or(config.on_failure()) == &OnFailure::Exit {
+              if is_failure && on_failure.unwrap_or(config.on_failure) == OnFailure::Exit {
                 ask_for_exit = true;
               }
             }
@@ -226,7 +226,7 @@ impl Run {
       rt.block_on(join.into_future())?;
     }
 
-    if let Some(notification) = config.notification().clone() {
+    if let Some(notification) = config.notification {
       rt.block_on(notification.notify_all_tasks_end(exit_success, exit_failure, ask_for_exit));
     }
 

@@ -1,4 +1,4 @@
-use crate::fst::*;
+use super::*;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TaskIter {

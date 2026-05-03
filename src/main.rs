@@ -10,6 +10,8 @@ mod utils;
 
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate anyhow;
 
 #[derive(Parser, Debug)]
 #[command(name = "runtasktic", author, version, about)]

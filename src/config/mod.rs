@@ -1,4 +1,4 @@
-pub use crate::config::task::Task;
+pub use self::task::Task;
 use anyhow::Result;
 use std::collections::HashMap;
 
@@ -9,70 +9,70 @@ mod task;
 #[serde(rename_all = "snake_case")]
 pub struct Config {
   #[serde(default, deserialize_with = "self::de::deserialize_task")]
-  tasks: HashMap<String, Task>,
+  pub tasks: HashMap<String, Task>,
   #[serde(default = "self::de::default_concurrency")]
-  concurrency: i64,
-  notification: Option<Notification>,
-  working_dir: Option<String>,
-  stdout: Option<String>,
-  stderr: Option<String>,
+  pub concurrency: i64,
+  pub notification: Option<Notification>,
+  pub working_dir: Option<String>,
+  pub stdout: Option<String>,
+  pub stderr: Option<String>,
   #[serde(default)]
-  on_failure: OnFailure,
+  pub on_failure: OnFailure,
 }
 
 #[derive(Debug, PartialEq, Clone, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Notification {
-  slack: Option<Slack>,
-  discord: Option<Discord>,
-  print: Option<Print>,
+  pub slack: Option<Slack>,
+  pub discord: Option<Discord>,
+  pub print: Option<Print>,
   #[serde(rename = "email")]
-  mail: Option<Mail>,
+  pub mail: Option<Mail>,
   #[serde(default)]
-  when: WhenNotify,
+  pub when: WhenNotify,
   #[serde(default)]
-  messages: Messages,
+  pub messages: Messages,
 }
 
 #[derive(Debug, PartialEq, Clone, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Slack {
   #[serde(deserialize_with = "self::de::notification_slack_url")]
-  url: String,
+  pub url: String,
   #[serde(deserialize_with = "self::de::notification_slack_channel")]
-  channel: String,
-  emoji: Option<String>,
+  pub channel: String,
+  pub emoji: Option<String>,
   #[serde(default, deserialize_with = "self::de::notification_slack_username")]
-  username: Option<String>,
-  when: Option<WhenNotify>,
+  pub username: Option<String>,
+  pub when: Option<WhenNotify>,
 }
 
 #[derive(Debug, PartialEq, Clone, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Discord {
   #[serde(deserialize_with = "self::de::notification_discord_url")]
-  url: String,
+  pub url: String,
   #[serde(default, deserialize_with = "self::de::notification_discord_username")]
-  username: Option<String>,
-  when: Option<WhenNotify>,
+  pub username: Option<String>,
+  pub when: Option<WhenNotify>,
 }
 
 #[derive(Debug, PartialEq, Clone, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Print {
-  output: String,
-  when: Option<WhenNotify>,
+  pub output: String,
+  pub when: Option<WhenNotify>,
 }
 
 #[derive(Debug, PartialEq, Clone, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Mail {
-  from: MailAddress,
-  to: MailAddress,
+  pub from: MailAddress,
+  pub to: MailAddress,
   #[serde(default = "self::de::default_email_subject")]
-  subject: String,
-  smtp: MailSMTP,
-  when: Option<WhenNotify>,
+  pub subject: String,
+  pub smtp: MailSMTP,
+  pub when: Option<WhenNotify>,
 }
 
 #[derive(Debug, PartialEq, Clone, serde::Deserialize)]
@@ -90,22 +90,22 @@ pub enum MailAddress {
 #[serde(rename_all = "snake_case")]
 pub struct MailSMTP {
   #[serde(deserialize_with = "self::de::notification_email_smtp_hostname")]
-  hostname: String,
+  pub hostname: String,
   #[serde(default = "self::de::default_email_port")]
-  port: u16,
+  pub port: u16,
   #[serde(
     default,
     deserialize_with = "self::de::notification_email_smtp_username"
   )]
-  username: Option<String>,
+  pub username: Option<String>,
   #[serde(deserialize_with = "self::de::notification_email_smtp_secret")]
-  secret: String,
+  pub secret: String,
   #[serde(default = "self::de::default_true")]
-  tls: bool,
+  pub tls: bool,
 }
 
 #[derive(Debug, PartialEq, Clone, serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "kebab-case")]
 pub enum WhenNotify {
   Always,
   TaskEnd,
@@ -114,8 +114,8 @@ pub enum WhenNotify {
   Fail,
 }
 
-#[derive(Debug, PartialEq, Clone, serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, PartialEq, Clone, Copy, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum OnFailure {
   Continue,
   Exit,
@@ -124,9 +124,9 @@ pub enum OnFailure {
 #[derive(Debug, PartialEq, Clone, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Messages {
-  task_end: String,
-  all_tasks_end: String,
-  task_failed: String,
+  pub task_end: String,
+  pub all_tasks_end: String,
+  pub task_failed: String,
 }
 
 impl Config {
@@ -141,60 +141,12 @@ impl Config {
   pub fn tasks_values_mut(&'_ mut self) -> std::collections::hash_map::ValuesMut<'_, String, Task> {
     self.tasks.values_mut()
   }
-
-  pub fn concurrency(&self) -> i64 {
-    self.concurrency
-  }
-
-  pub fn notification(&self) -> &Option<Notification> {
-    &self.notification
-  }
-
-  pub fn working_dir(&self) -> &Option<String> {
-    &self.working_dir
-  }
-
-  pub fn stdout(&self) -> &Option<String> {
-    &self.stdout
-  }
-
-  pub fn stderr(&self) -> &Option<String> {
-    &self.stderr
-  }
-
-  pub fn on_failure(&self) -> &OnFailure {
-    &self.on_failure
-  }
 }
 
 impl Notification {
-  pub fn slack(&self) -> &Option<Slack> {
-    &self.slack
-  }
-
-  pub fn discord(&self) -> &Option<Discord> {
-    &self.discord
-  }
-
-  pub fn print(&self) -> &Option<Print> {
-    &self.print
-  }
-
-  pub fn email(&self) -> &Option<Mail> {
-    &self.mail
-  }
-
-  pub fn when(&self) -> &WhenNotify {
-    &self.when
-  }
-
-  pub fn messages(&self) -> &Messages {
-    &self.messages
-  }
-
   pub async fn notify_task_end(&self, task: &Task, status_code: std::process::ExitStatus) {
     let success = Some(status_code.success());
-    if !self.when().should_notify(&WhenNotify::TaskEnd, success) {
+    if !self.when.should_notify(&WhenNotify::TaskEnd, success) {
       return;
     }
 
@@ -204,31 +156,31 @@ impl Notification {
     } else {
       &short_cmd
     };
-    let msg = crate::notification::replace_templates(self.messages().task_end());
+    let msg = crate::notification::replace_templates(&self.messages.task_end);
     let msg = msg.replace("{task.id}", id);
     let msg = msg.replace("{task.full_cmd}", &task.full_command());
     let msg = msg.replace("{task.short_cmd}", &short_cmd);
     let msg = msg.replace("{task.status_code}", &format!("{}", status_code));
 
-    if let Some(print) = self.print().notify(&WhenNotify::TaskEnd, success) {
+    if let Some(print) = self.print.notify(&WhenNotify::TaskEnd, success) {
       if let Err(e) = crate::notification::notification_print(&print, msg.as_str()) {
         eprintln!("Can't use print notification: {}", e);
       }
     }
 
-    if let Some(slack) = self.slack().notify(&WhenNotify::TaskEnd, success) {
+    if let Some(slack) = self.slack.notify(&WhenNotify::TaskEnd, success) {
       if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
         eprintln!("Can't use slack notification: {}", e);
       }
     }
 
-    if let Some(discord) = self.discord().notify(&WhenNotify::TaskEnd, success) {
+    if let Some(discord) = self.discord.notify(&WhenNotify::TaskEnd, success) {
       if let Err(e) = crate::notification::post_discord(&discord, msg.as_str()) {
         eprintln!("Can't use discord notification: {}", e);
       }
     }
 
-    if let Some(email) = self.email().notify(&WhenNotify::TaskEnd, success) {
+    if let Some(email) = self.mail.notify(&WhenNotify::TaskEnd, success) {
       if let Err(e) = crate::notification::notification_email(&email, msg.as_str()).await {
         eprintln!("Can't use email notification: {}", e);
       }
@@ -237,37 +189,37 @@ impl Notification {
 
   pub async fn notify_all_tasks_end(&self, success: i32, failures: i32, failed: bool) {
     let has_failure = Some(failures > 0);
-    if !self.when().should_notify(&WhenNotify::End, has_failure) {
+    if !self.when.should_notify(&WhenNotify::End, has_failure) {
       return;
     }
     let msg = if !failed {
-      self.messages().all_tasks_end()
+      &self.messages.all_tasks_end
     } else {
-      self.messages().task_failed()
+      &self.messages.task_failed
     };
     let msg = crate::notification::replace_templates(msg);
     let msg = msg.replace("{resume.success}", &format!("{}", success));
     let msg = msg.replace("{resume.failures}", &format!("{}", failures));
 
-    if let Some(print) = self.print().notify(&WhenNotify::End, has_failure) {
+    if let Some(print) = self.print.notify(&WhenNotify::End, has_failure) {
       if let Err(e) = crate::notification::notification_print(&print, msg.as_str()) {
         eprintln!("Can't use print notification: {}", e);
       }
     }
 
-    if let Some(slack) = self.slack().notify(&WhenNotify::End, has_failure) {
+    if let Some(slack) = self.slack.notify(&WhenNotify::End, has_failure) {
       if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
         eprintln!("Can't use slack notification: {}", e);
       }
     }
 
-    if let Some(discord) = self.discord().notify(&WhenNotify::End, has_failure) {
+    if let Some(discord) = self.discord.notify(&WhenNotify::End, has_failure) {
       if let Err(e) = crate::notification::post_discord(&discord, msg.as_str()) {
         eprintln!("Can't use discord notification: {}", e);
       }
     }
 
-    if let Some(email) = self.email().notify(&WhenNotify::End, has_failure) {
+    if let Some(email) = self.mail.notify(&WhenNotify::End, has_failure) {
       if let Err(e) = crate::notification::notification_email(&email, msg.as_str()).await {
         eprintln!("Can't use email notification: {}", e);
       }
@@ -275,53 +227,7 @@ impl Notification {
   }
 }
 
-impl Slack {
-  pub fn url(&self) -> &String {
-    &self.url
-  }
-
-  pub fn channel(&self) -> &String {
-    &self.channel
-  }
-
-  pub fn emoji(&self) -> &Option<String> {
-    &self.emoji
-  }
-
-  pub fn username(&self) -> &Option<String> {
-    &self.username
-  }
-}
-
-impl Discord {
-  pub fn url(&self) -> &String {
-    &self.url
-  }
-
-  pub fn username(&self) -> &Option<String> {
-    &self.username
-  }
-}
-
-impl Print {
-  pub fn output(&self) -> &String {
-    &self.output
-  }
-}
-
 impl Mail {
-  pub fn from(&self) -> &MailAddress {
-    &self.from
-  }
-
-  pub fn to(&self) -> &MailAddress {
-    &self.to
-  }
-
-  pub fn subject(&self) -> &String {
-    &self.subject
-  }
-
   pub fn smtp_hostname(&self) -> &String {
     &self.smtp.hostname
   }
@@ -406,20 +312,6 @@ impl<T: Clone + When> Notify for Option<T> {
   }
 }
 
-impl Messages {
-  pub fn task_end(&self) -> &String {
-    &self.task_end
-  }
-
-  pub fn all_tasks_end(&self) -> &String {
-    &self.all_tasks_end
-  }
-
-  pub fn task_failed(&self) -> &String {
-    &self.task_failed
-  }
-}
-
 impl Default for Messages {
   fn default() -> Self {
     Self {
@@ -492,7 +384,7 @@ mod test {
     )?;
 
     assert_eq!(config.notification, None);
-    assert_eq!(config.tasks(), &HashMap::new());
+    assert_eq!(config.tasks, HashMap::new());
     Ok(())
   }
 
@@ -509,7 +401,7 @@ mod test {
       String::from("a"),
       Task::new(String::from("a"), vec![], vec![], None),
     );
-    assert_eq!(config.tasks(), &expected);
+    assert_eq!(config.tasks, expected);
     Ok(())
   }
 
@@ -534,7 +426,7 @@ mod test {
       ),
     );
 
-    assert_eq!(config.tasks(), &expected);
+    assert_eq!(config.tasks, expected);
     Ok(())
   }
 
@@ -562,7 +454,7 @@ mod test {
       ),
     );
 
-    assert_eq!(config.tasks(), &expected);
+    assert_eq!(config.tasks, expected);
     Ok(())
   }
 
@@ -592,7 +484,7 @@ mod test {
       smtp: expected_smtp,
       when: None,
     };
-    let email = notification.email();
+    let email = notification.mail;
 
     assert!(email.is_some());
     assert_eq!(email.clone(), Some(expected_mail));
@@ -613,19 +505,19 @@ mod test {
     let c = Task::new("c", vec![echo("c")], vs(&["a"]), None);
     let d = Task::new("d", vec![echo("d")], vs(&["b", "c"]), None);
 
-    assert_eq!(*config.notification(), None);
-    assert_eq!(config.concurrency(), -1);
+    assert_eq!(config.notification, None);
+    assert_eq!(config.concurrency, -1);
     assert_eq!(
-      *config.working_dir(),
+      config.working_dir,
       Some(String::from("/custom/directory"))
     );
-    assert_eq!(*config.stdout(), Some(String::from("none")));
-    assert_eq!(*config.stderr(), Some(String::from("none")));
-    assert_eq!(config.tasks().len(), 4);
-    assert_eq!(config.tasks().get(&"a".to_string()), Some(&a));
-    assert_eq!(config.tasks().get(&"b".to_string()), Some(&b));
-    assert_eq!(config.tasks().get(&"c".to_string()), Some(&c));
-    assert_eq!(config.tasks().get(&"d".to_string()), Some(&d));
+    assert_eq!(config.stdout, Some(String::from("none")));
+    assert_eq!(config.stderr, Some(String::from("none")));
+    assert_eq!(config.tasks.len(), 4);
+    assert_eq!(config.tasks.get(&"a".to_string()), Some(&a));
+    assert_eq!(config.tasks.get(&"b".to_string()), Some(&b));
+    assert_eq!(config.tasks.get(&"c".to_string()), Some(&c));
+    assert_eq!(config.tasks.get(&"d".to_string()), Some(&d));
   }
 
   #[test]
@@ -676,16 +568,16 @@ mod test {
       None,
     );
 
-    assert_eq!(*config.notification(), None);
-    assert_eq!(config.concurrency(), 2);
-    assert_eq!(config.tasks().len(), 7);
-    assert_eq!(config.tasks().get(&"a1".to_string()), Some(&a1));
-    assert_eq!(config.tasks().get(&"a2".to_string()), Some(&a2));
-    assert_eq!(config.tasks().get(&"b".to_string()), Some(&b));
-    assert_eq!(config.tasks().get(&"c".to_string()), Some(&c));
-    assert_eq!(config.tasks().get(&"d".to_string()), Some(&d));
-    assert_eq!(config.tasks().get(&"e".to_string()), Some(&e));
-    assert_eq!(config.tasks().get(&"f".to_string()), Some(&f));
+    assert_eq!(config.notification, None);
+    assert_eq!(config.concurrency, 2);
+    assert_eq!(config.tasks.len(), 7);
+    assert_eq!(config.tasks.get(&"a1".to_string()), Some(&a1));
+    assert_eq!(config.tasks.get(&"a2".to_string()), Some(&a2));
+    assert_eq!(config.tasks.get(&"b".to_string()), Some(&b));
+    assert_eq!(config.tasks.get(&"c".to_string()), Some(&c));
+    assert_eq!(config.tasks.get(&"d".to_string()), Some(&d));
+    assert_eq!(config.tasks.get(&"e".to_string()), Some(&e));
+    assert_eq!(config.tasks.get(&"f".to_string()), Some(&f));
   }
 
   #[test]
@@ -768,14 +660,14 @@ mod test {
       messages: Messages::default(),
     };
 
-    assert_eq!(*config.notification(), Some(notification));
-    assert_eq!(config.concurrency(), -1);
-    assert_eq!(config.tasks().len(), 5);
-    assert_eq!(config.tasks().get(&"a".to_string()), Some(&a));
-    assert_eq!(config.tasks().get(&"b".to_string()), Some(&b));
-    assert_eq!(config.tasks().get(&"c".to_string()), Some(&c));
-    assert_eq!(config.tasks().get(&"d".to_string()), Some(&d));
-    assert_eq!(config.tasks().get(&"e".to_string()), Some(&e));
+    assert_eq!(config.notification, Some(notification));
+    assert_eq!(config.concurrency, -1);
+    assert_eq!(config.tasks.len(), 5);
+    assert_eq!(config.tasks.get(&"a".to_string()), Some(&a));
+    assert_eq!(config.tasks.get(&"b".to_string()), Some(&b));
+    assert_eq!(config.tasks.get(&"c".to_string()), Some(&c));
+    assert_eq!(config.tasks.get(&"d".to_string()), Some(&d));
+    assert_eq!(config.tasks.get(&"e".to_string()), Some(&e));
   }
 
   #[test]
@@ -814,15 +706,15 @@ mod test {
       None,
     );
 
-    assert_eq!(config.on_failure(), &OnFailure::Continue);
-    assert_eq!(config.notification(), &None);
-    assert_eq!(config.concurrency(), 2);
-    assert_eq!(config.tasks().len(), 5);
-    assert_eq!(config.tasks().get(&"a".to_string()), Some(&a));
-    assert_eq!(config.tasks().get(&"b".to_string()), Some(&b));
-    assert_eq!(config.tasks().get(&"c".to_string()), Some(&c));
-    assert_eq!(config.tasks().get(&"d".to_string()), Some(&d));
-    assert_eq!(config.tasks().get(&"e".to_string()), Some(&e));
+    assert_eq!(config.on_failure, OnFailure::Continue);
+    assert_eq!(config.notification, None);
+    assert_eq!(config.concurrency, 2);
+    assert_eq!(config.tasks.len(), 5);
+    assert_eq!(config.tasks.get(&"a".to_string()), Some(&a));
+    assert_eq!(config.tasks.get(&"b".to_string()), Some(&b));
+    assert_eq!(config.tasks.get(&"c".to_string()), Some(&c));
+    assert_eq!(config.tasks.get(&"d".to_string()), Some(&d));
+    assert_eq!(config.tasks.get(&"e".to_string()), Some(&e));
   }
 
   fn echo(msg: &str) -> String {

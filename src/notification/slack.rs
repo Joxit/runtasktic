@@ -3,18 +3,18 @@ use crate::notification::replace_templates;
 
 pub fn post_slack(slack: &Slack, message: &str) -> Result<(), String> {
   let mut content = json::object! {
-    "channel" => slack.channel().as_str(),
-    "username" => slack.username().as_ref().unwrap_or(&"runtasktic".to_string()).as_str(),
+    "channel" => slack.channel.clone(),
+    "username" => slack.username.clone().unwrap_or("runtasktic".to_string()),
     "text" => replace_templates(message)
   };
 
-  if let Some(emoji) = slack.emoji() {
+  if let Some(emoji) = &slack.emoji {
     content
       .insert("icon_emoji", emoji.as_str())
       .map_err(|msg| format!("{}", msg))?;
   }
 
-  let resp = attohttpc::post(slack.url())
+  let resp = attohttpc::post(&slack.url)
     .header_append("Content-Type", "application/json")
     .text(content.dump())
     .send()

@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::fst::dot::*;
 use crate::fst::*;
-use anyhow::{Context, Result, anyhow, ensure};
+use anyhow::{Context, Result};
 use clap::Parser;
 use std::fs;
 use std::io::Cursor;

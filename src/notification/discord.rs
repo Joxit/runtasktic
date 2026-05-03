@@ -3,11 +3,11 @@ use crate::notification::replace_templates;
 
 pub fn post_discord(discord: &Discord, message: &str) -> Result<(), String> {
   let content = json::object! {
-    "username" => discord.username().as_ref().unwrap_or(&"runtasktic".to_string()).as_str(),
+    "username" => discord.username.clone().unwrap_or("runtasktic".to_string()),
     "content" => replace_templates(message)
   };
 
-  let resp = attohttpc::post(discord.url())
+  let resp = attohttpc::post(&discord.url)
     .header_append("Content-Type", "application/json")
     .text(content.dump())
     .send()

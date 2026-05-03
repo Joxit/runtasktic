@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, ensure};
+use anyhow::{Context, Result};
 use std::fs::{File, OpenOptions};
 use std::path::Path;
 use std::process::{Command, Stdio};

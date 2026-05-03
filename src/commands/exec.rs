@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::utils::traits::{CommandConfig, WaitSchedule};
-use anyhow::{Context, Result, anyhow, ensure};
+use anyhow::{Context, Result};
 use chrono::Local;
 use clap::Parser;
 use cron::Schedule;
@@ -105,14 +105,14 @@ impl Exec {
       .arg("-c")
       .arg(&cmd_line)
       .stdin(self.stdin())
-      .stdout_opt(config.stdout(), !self.background)?
-      .stderr_opt(config.stderr(), !self.background)?
-      .working_dir(config.working_dir())?
+      .stdout_opt(&config.stdout, !self.background)?
+      .stderr_opt(&config.stderr, !self.background)?
+      .working_dir(&config.working_dir)?
       .spawn()
       .with_context(|| format!("Can't run command `{}`", cmd_line))?;
 
     let exit = child.wait().unwrap();
-    if let Some(notification) = config.notification().clone() {
+    if let Some(notification) = config.notification {
       rt.block_on(notification.notify_task_end(&task, exit));
     }
 

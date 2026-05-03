@@ -1,4 +1,4 @@
-use crate::config::OnFailure;
+use super::OnFailure;
 
 #[derive(Debug, PartialEq, Clone, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]

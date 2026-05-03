@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, anyhow, bail, ensure};
+use anyhow::{Context, Result};
 use clap::Parser;
 use std::io::Write;
 use std::os::unix::fs::PermissionsExt;

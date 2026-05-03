@@ -1,7 +1,7 @@
 pub mod dot;
 mod iter;
 
-use crate::fst::iter::*;
+use self::iter::*;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TaskFst {
