@@ -31,6 +31,9 @@ pub struct Run {
   /// Schedule your tasks using cron expression.
   #[arg(long = "cron")]
   cron: Option<Schedule>,
+  /// Notification rule to apply `type:when`.
+  #[arg(long = "notification")]
+  notification: Vec<super::NotificationArg>,
   #[arg(long = "verbose", short = 'v')]
   verbose: bool,
 }
@@ -105,6 +108,10 @@ impl Run {
         "Need at least one task in the config file to run: `{}`",
         config_path.display()
       );
+    }
+
+    for notif_arg in &self.notification {
+      notif_arg.config_mut(&mut config);
     }
 
     let mut graph = TaskFst::new();

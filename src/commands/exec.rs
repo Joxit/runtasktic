@@ -29,6 +29,9 @@ pub struct Exec {
   /// Set a custom name for your task, default value will be the executable name.
   #[arg(long = "name", conflicts_with = "task")]
   name: Option<String>,
+  /// Notification rule to apply `type:when`.
+  #[arg(long = "notification")]
+  notification: Vec<super::NotificationArg>,
   /// Command to execute
   #[arg()]
   command: Vec<String>,
@@ -75,7 +78,7 @@ impl Exec {
 
   fn run(&self) -> Result<()> {
     let rt = Runtime::new()?;
-    let (config, path) = if Some(PathBuf::from("-")) == self.config {
+    let (mut config, path) = if Some(PathBuf::from("-")) == self.config {
       (Config::default(), format!("-"))
     } else if let Some(path) = &self.config {
       self.config_path(path)?
@@ -100,6 +103,10 @@ impl Exec {
       crate::config::Task::new(id, vec![self.command.join(" ")], vec![], None)
     };
     let cmd_line = task.full_command();
+
+    for notif_arg in &self.notification {
+      notif_arg.config_mut(&mut config);
+    }
 
     let mut child = Command::new("sh")
       .arg("-c")
