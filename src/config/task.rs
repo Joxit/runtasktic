@@ -47,6 +47,13 @@ impl Task {
       format!("<unknonw short command>")
     }
   }
+  pub fn label(&self) -> String {
+    if self.id.len() > 0 {
+      self.id().clone()
+    } else {
+      self.short_command()
+    }
+  }
   pub fn depends_on(&self) -> &Vec<String> {
     &self.depends_on
   }

@@ -31,9 +31,10 @@ pub struct Run {
   /// Schedule your tasks using cron expression.
   #[arg(long = "cron")]
   cron: Option<Schedule>,
-  /// Notification rule to apply `type:when`.
-  #[arg(long = "notification")]
+  /// Notification rule to apply `all`, `none`, `<notification provider>`, `<when>` or `<notification provider>:<when>`. Can be repeated or join with comma `,`
+  #[arg(long = "notification", value_delimiter = ',')]
   notification: Vec<super::NotificationArg>,
+  /// Display debug messages on STDERR
   #[arg(long = "verbose", short = 'v')]
   verbose: bool,
 }

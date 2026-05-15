@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::utils::logger;
 use crate::utils::traits::{CommandConfig, WaitSchedule};
 use anyhow::{Context, Result};
 use chrono::Local;
@@ -29,16 +30,22 @@ pub struct Exec {
   /// Set a custom name for your task, default value will be the executable name.
   #[arg(long = "name", conflicts_with = "task")]
   name: Option<String>,
-  /// Notification rule to apply `type:when`.
-  #[arg(long = "notification")]
+  /// Notification rule to apply `all`, `none`, `<notification provider>`, `<when>` or `<notification provider>:<when>`. Can be repeated or join with comma `,`
+  #[arg(long = "notification", value_delimiter = ',')]
   notification: Vec<super::NotificationArg>,
   /// Command to execute
   #[arg()]
   command: Vec<String>,
+  /// Display debug messages on STDERR
+  #[arg(long = "verbose", short = 'v')]
+  verbose: bool,
 }
 
 impl Exec {
   pub fn exec(&self) -> Result<()> {
+    if self.verbose {
+      logger::init_with_level(log::Level::Debug, "runtasktik::exec")?;
+    }
     if let Some(config) = &self.config {
       ensure!(
         config == &PathBuf::from("-") || config.exists(),
@@ -103,6 +110,9 @@ impl Exec {
       crate::config::Task::new(id, vec![self.command.join(" ")], vec![], None)
     };
     let cmd_line = task.full_command();
+    let label = task.label();
+    let start = chrono::Local::now();
+    debug!("Executing task {label}");
 
     for notif_arg in &self.notification {
       notif_arg.config_mut(&mut config);
@@ -119,6 +129,12 @@ impl Exec {
       .with_context(|| format!("Can't run command `{}`", cmd_line))?;
 
     let exit = child.wait().unwrap();
+    let elapsed = (Local::now() - start).num_milliseconds() as f64 / 1000f64;
+    debug!(
+      "Task {label} finished with status code {} in {elapsed}s",
+      exit.code().unwrap_or(-255),
+    );
+
     if let Some(notification) = config.notification {
       rt.block_on(notification.notify_task_end(&task, exit));
     }

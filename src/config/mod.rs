@@ -151,13 +151,9 @@ impl Notification {
     }
 
     let short_cmd = task.short_command();
-    let id = if task.id().len() > 0 {
-      task.id()
-    } else {
-      &short_cmd
-    };
+    let id = task.label();
     let msg = crate::notification::replace_templates(&self.messages.task_end);
-    let msg = msg.replace("{task.id}", id);
+    let msg = msg.replace("{task.id}", &id);
     let msg = msg.replace("{task.full_cmd}", &task.full_command());
     let msg = msg.replace("{task.short_cmd}", &short_cmd);
     let msg = msg.replace("{task.status_code}", &format!("{}", status_code));
@@ -507,10 +503,7 @@ mod test {
 
     assert_eq!(config.notification, None);
     assert_eq!(config.concurrency, -1);
-    assert_eq!(
-      config.working_dir,
-      Some(String::from("/custom/directory"))
-    );
+    assert_eq!(config.working_dir, Some(String::from("/custom/directory")));
     assert_eq!(config.stdout, Some(String::from("none")));
     assert_eq!(config.stderr, Some(String::from("none")));
     assert_eq!(config.tasks.len(), 4);
