@@ -82,6 +82,12 @@ Options:
       --cron <CRON>
           Schedule your tasks using cron expression
 
+      --notification <NOTIFICATION>
+          Notification rule to apply `all`, `none`, `<notification provider>`, `<when>` or `<notification provider>:<when>`. Can be repeated or join with comma `,`
+
+  -v, --verbose
+          Display debug messages on STDERR
+
   -h, --help
           Print help (see a summary with '-h')
 ```
@@ -111,6 +117,15 @@ Options:
 
       --cron <CRON>
           Schedule your tasks using cron expression
+
+      --name <NAME>
+          Set a custom name for your task, default value will be the executable name
+
+      --notification <NOTIFICATION>
+          Notification rule to apply `all`, `none`, `<notification provider>`, `<when>` or `<notification provider>:<when>`. Can be repeated or join with comma `,`
+
+  -v, --verbose
+          Display debug messages on STDERR
 
   -h, --help
           Print help (see a summary with '-h')
