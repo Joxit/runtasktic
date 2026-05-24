@@ -259,7 +259,7 @@ impl WhenNotify {
     self != &WhenNotify::Never
       && (self == &WhenNotify::Always
         || self == when
-        || (Some(true) == success && self == &WhenNotify::Fail))
+        || (Some(false) == success && self == &WhenNotify::Fail))
   }
 }
 
