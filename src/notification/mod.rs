@@ -21,19 +21,19 @@ pub fn replace_templates<S: AsRef<str>>(message: S) -> String {
   let msg = replace_hostname(message);
   let msg = replace_environments(msg);
   msg
-    .replace("{date.utc.now}", &now(&utc))
+    .replace("{date.utc.now}", &now(&utc, true))
     .replace("{date.utc.today}", &today(&utc))
-    .replace("{date.utc.time}", &time(&utc))
-    .replace("{date.local.now}", &now(&local))
+    .replace("{date.utc.time}", &time(&utc, true))
+    .replace("{date.local.now}", &now(&local, false))
     .replace("{date.local.today}", &today(&local))
-    .replace("{date.local.time}", &time(&local))
+    .replace("{date.local.time}", &time(&local, false))
 }
 
-fn now<Tz: TimeZone>(d: &DateTime<Tz>) -> String
+fn now<Tz: TimeZone>(d: &DateTime<Tz>, is_utc: bool) -> String
 where
   Tz::Offset: std::fmt::Display,
 {
-  if d.fixed_offset().offset().local_minus_utc() == 0 {
+  if is_utc {
     d.format("%FT%T%.3fZ").to_string()
   } else {
     d.format("%FT%T%.3f").to_string()
@@ -47,11 +47,11 @@ where
   d.format("%F").to_string()
 }
 
-fn time<Tz: TimeZone>(d: &DateTime<Tz>) -> String
+fn time<Tz: TimeZone>(d: &DateTime<Tz>, is_utc: bool) -> String
 where
   Tz::Offset: std::fmt::Display,
 {
-  if d.fixed_offset().offset().local_minus_utc() == 0 {
+  if is_utc {
     d.format("%T%.3fZ").to_string()
   } else {
     d.format("%T%.3f").to_string()
@@ -193,12 +193,12 @@ mod test {
     let date: DateTime<FixedOffset> = DateTime::from_str("2017-08-30 13:37:00+02:00").unwrap();
     let utc = date.to_utc();
 
-    assert_eq!(super::now(&date), "2017-08-30T13:37:00.000".to_string());
-    assert_eq!(super::today(&date), "2017-08-30".to_string());
-    assert_eq!(super::time(&date), "13:37:00.000".to_string());
+    assert_eq!(super::now(&date, false).as_str(), "2017-08-30T13:37:00.000");
+    assert_eq!(super::today(&date).as_str(), "2017-08-30");
+    assert_eq!(super::time(&date, false).as_str(), "13:37:00.000");
 
-    assert_eq!(super::now(&utc), "2017-08-30T11:37:00.000Z".to_string());
-    assert_eq!(super::today(&utc), "2017-08-30".to_string());
-    assert_eq!(super::time(&utc), "11:37:00.000Z".to_string());
+    assert_eq!(super::now(&utc, true).as_str(), "2017-08-30T11:37:00.000Z");
+    assert_eq!(super::today(&utc).as_str(), "2017-08-30");
+    assert_eq!(super::time(&utc, true).as_str(), "11:37:00.000Z");
   }
 }
