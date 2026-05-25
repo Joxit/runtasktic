@@ -2,6 +2,7 @@ pub use crate::notification::discord::*;
 pub use crate::notification::mail::*;
 pub use crate::notification::print::*;
 pub use crate::notification::slack::*;
+use chrono::{DateTime, TimeZone};
 use hostname::get as get_hostname;
 use regex::Regex;
 use std::env::var as get_env;
@@ -15,9 +16,46 @@ const HOSTNAME_TEMPLATE: &str = "{hostname}";
 const ENVIRONMENT_TEMPLATE: &str = "\\{env.(?P<key>[a-zA-Z0-9_]+)\\}";
 
 pub fn replace_templates<S: AsRef<str>>(message: S) -> String {
+  let local = chrono::Local::now();
+  let utc = local.to_utc();
   let msg = replace_hostname(message);
   let msg = replace_environments(msg);
   msg
+    .replace("{date.utc.now}", &now(&utc))
+    .replace("{date.utc.today}", &today(&utc))
+    .replace("{date.utc.time}", &time(&utc))
+    .replace("{date.local.now}", &now(&local))
+    .replace("{date.local.today}", &today(&local))
+    .replace("{date.local.time}", &time(&local))
+}
+
+fn now<Tz: TimeZone>(d: &DateTime<Tz>) -> String
+where
+  Tz::Offset: std::fmt::Display,
+{
+  if d.fixed_offset().offset().local_minus_utc() == 0 {
+    d.format("%FT%T%.3fZ").to_string()
+  } else {
+    d.format("%FT%T%.3f").to_string()
+  }
+}
+
+fn today<Tz: TimeZone>(d: &DateTime<Tz>) -> String
+where
+  Tz::Offset: std::fmt::Display,
+{
+  d.format("%F").to_string()
+}
+
+fn time<Tz: TimeZone>(d: &DateTime<Tz>) -> String
+where
+  Tz::Offset: std::fmt::Display,
+{
+  if d.fixed_offset().offset().local_minus_utc() == 0 {
+    d.format("%T%.3fZ").to_string()
+  } else {
+    d.format("%T%.3f").to_string()
+  }
 }
 
 fn replace_hostname<S: AsRef<str>>(message: S) -> String {
@@ -49,7 +87,10 @@ fn replace_environments<S: AsRef<str>>(message: S) -> String {
 #[cfg(test)]
 mod test {
   use super::*;
+  use chrono::FixedOffset;
+  use regex::Regex;
   use std::env::{remove_var as remove_env, set_var as set_env};
+  use std::str::FromStr;
 
   #[test]
   fn replace_hostname() {
@@ -104,5 +145,60 @@ mod test {
       super::replace_environments("{env.RUNTASKTIK_undefined}"),
       "".to_string()
     );
+  }
+
+  #[test]
+  fn replace_templates() -> anyhow::Result<()> {
+    let utc_now = super::replace_templates("{date.utc.now}");
+    assert!(
+      Regex::new(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$")?.is_match(&utc_now),
+      "Fail to parse `date.utc.now` and got: {utc_now}"
+    );
+
+    let utc_today = super::replace_templates("{date.utc.today}");
+    assert!(
+      Regex::new(r"^\d{4}-\d{2}-\d{2}$")?.is_match(&utc_today),
+      "Fail to parse `date.utc.today` and got: {utc_today}",
+    );
+
+    let utc_time = super::replace_templates("{date.utc.time}");
+    assert!(
+      Regex::new(r"^\d{2}:\d{2}:\d{2}\.\d{3}Z$")?.is_match(&utc_time),
+      "Fail to parse `date.utc.time` and got: {utc_time}",
+    );
+
+    let local_now = super::replace_templates("{date.local.now}");
+    assert!(
+      Regex::new(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}$")?.is_match(&local_now),
+      "Fail to parse `date.local.now` and got: {local_now}",
+    );
+
+    let local_today = super::replace_templates("{date.local.today}");
+    assert!(
+      Regex::new(r"^\d{4}-\d{2}-\d{2}$")?.is_match(&local_today),
+      "Fail to parse `date.local.today` and got: {local_today}",
+    );
+
+    let local_time = super::replace_templates("{date.local.time}");
+    assert!(
+      Regex::new(r"^\d{2}:\d{2}:\d{2}\.\d{3}$")?.is_match(&local_time),
+      "Fail to parse `date.local.time` and got: {local_time}",
+    );
+
+    Ok(())
+  }
+
+  #[test]
+  fn date_time_format() {
+    let date: DateTime<FixedOffset> = DateTime::from_str("2017-08-30 13:37:00+02:00").unwrap();
+    let utc = date.to_utc();
+
+    assert_eq!(super::now(&date), "2017-08-30T13:37:00.000".to_string());
+    assert_eq!(super::today(&date), "2017-08-30".to_string());
+    assert_eq!(super::time(&date), "13:37:00.000".to_string());
+
+    assert_eq!(super::now(&utc), "2017-08-30T11:37:00.000Z".to_string());
+    assert_eq!(super::today(&utc), "2017-08-30".to_string());
+    assert_eq!(super::time(&utc), "11:37:00.000Z".to_string());
   }
 }

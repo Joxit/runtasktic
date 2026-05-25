@@ -197,9 +197,9 @@ tasks:
     depends_on: [a] # This task will be executed after a.
 notification:
   messages:
-    task_end: Task {task.id} ended with status code {task.status_code} # Availables templates are {task.id}, {task.short_cmd}, {task.full_cmd}, {task.status_code}, {hostname}, {env.*} for environment variables
-    all_task_end: All tasks ended. Got {resume.success} success and {resume.failures} failure. # Availables templates are {resulme.success}, {resume.failures}, {hostname}, {env.*} for environment variables
-    task_failed: Tasks ended prematurely. Got {resume.success} success and {resume.failures} failure. Contains one critical failure. # Availables templates are {resulme.success}, {resume.failures}, {hostname}, {env.*} for environment variables. Triggered when `on_failure: exit` is used.
+    task_end: Task {task.id} ended with status code {task.status_code} # Triggered at the end of a single task and while using exec. See also `Notifications: Available template` section
+    all_task_end: All tasks ended. Got {resume.success} success and {resume.failures} failure. # Triggered when all tasks are finished using `run`. See also `Notifications: Available template` section
+    task_failed: Tasks ended prematurely. Got {resume.success} success and {resume.failures} failure. Contains one critical failure. # Triggered when `on_failure: exit` is used in `run`. See also `Notifications: Available template` section.
   when: always # `always`, `task-end`, `end`, `fail` or `never` when should I send notification
   slack: # send notification to slack
     url: https://hooks.slack.com/services/XXXXX/XXXXX/XXXXX # The slack server url
@@ -249,6 +249,25 @@ Available ones are:
 - `RUNTASKTIK_NOTIFICATION_EMAIL_SMTP_SECRET`
 - `RUNTASKTIK_NOTIFICATION_DISCORD_URL`
 - `RUNTASKTIK_NOTIFICATION_DISCORD_USERNAME`
+
+### Notifications: Available template
+
+Here is the list of available templates you can use in your messages sended by the notification system.
+
+- `{task.id}`: Id of the task, fallback to `--name` of th short command. Supported by `task_end`.
+- `{task.status_code}`: Returned status code by the task. Supported by `task_end`.
+- `{task.short_cmd}`: Short command of the task, should be the binary/exec. Supported by `task_end`.
+- `{task.full_cmd}`: The full command line of the task. Supported by `task_end`.
+- `{resume.success}`: Number of tasks with success status code. Supported by `all_task_end`, `task_failed`.
+- `{resume.failures}`: Number of tasks with failure status code. Supported by `all_task_end`, `task_failed`.
+- `{hostname}`: Returns the host name. Supported globally.
+- `{env.*}`: Returns arbitrary host environment variables. Supported globally.
+- `{date.utc.now}`: Get current UTC date time with format in ISO 8601 (e.g. `2017-08-30T11:37:00.000Z`). Supported globally.
+- `{date.utc.today}`: Get current UTC date with format in ISO 8601 (e.g. `2017-08-30`). Supported globally.
+- `{date.utc.time}`: Get current UTC time with format in ISO 8601 (e.g. `11:37:00.000Z`). Supported globally.
+- `{date.local.now}`: Get current local date time with format in ISO 8601 without offset (e.g. `2017-08-30T11:37:00.000`). Supported globally.
+- `{date.local.today}`: Get current local date with format in ISO 8601 (e.g. `2017-08-30`). Supported globally.
+- `{date.local.time}`: Get current local time with format in ISO 8601 without offset (e.g. `11:37:00.000`). Supported globally.
 
 ### Configuration examples
 
