@@ -184,8 +184,8 @@ impl Notification {
   }
 
   pub async fn notify_all_tasks_end(&self, success: i32, failures: i32, failed: bool) {
-    let has_failure = Some(failures > 0);
-    if !self.when.should_notify(&WhenNotify::End, has_failure) {
+    let is_success = Some(failures == 0);
+    if !self.when.should_notify(&WhenNotify::End, is_success) {
       return;
     }
     let msg = if !failed {
@@ -197,25 +197,25 @@ impl Notification {
     let msg = msg.replace("{resume.success}", &format!("{}", success));
     let msg = msg.replace("{resume.failures}", &format!("{}", failures));
 
-    if let Some(print) = self.print.notify(&WhenNotify::End, has_failure) {
+    if let Some(print) = self.print.notify(&WhenNotify::End, is_success) {
       if let Err(e) = crate::notification::notification_print(&print, msg.as_str()) {
         eprintln!("Can't use print notification: {}", e);
       }
     }
 
-    if let Some(slack) = self.slack.notify(&WhenNotify::End, has_failure) {
+    if let Some(slack) = self.slack.notify(&WhenNotify::End, is_success) {
       if let Err(e) = crate::notification::post_slack(&slack, msg.as_str()) {
         eprintln!("Can't use slack notification: {}", e);
       }
     }
 
-    if let Some(discord) = self.discord.notify(&WhenNotify::End, has_failure) {
+    if let Some(discord) = self.discord.notify(&WhenNotify::End, is_success) {
       if let Err(e) = crate::notification::post_discord(&discord, msg.as_str()) {
         eprintln!("Can't use discord notification: {}", e);
       }
     }
 
-    if let Some(email) = self.mail.notify(&WhenNotify::End, has_failure) {
+    if let Some(email) = self.mail.notify(&WhenNotify::End, is_success) {
       if let Err(e) = crate::notification::notification_email(&email, msg.as_str()).await {
         eprintln!("Can't use email notification: {}", e);
       }
