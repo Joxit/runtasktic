@@ -1,3 +1,4 @@
+use self::de::*;
 pub use self::task::Task;
 use anyhow::Result;
 use std::collections::HashMap;
@@ -8,9 +9,9 @@ mod task;
 #[derive(Debug, PartialEq, Clone, Default, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Config {
-  #[serde(default, deserialize_with = "self::de::deserialize_task")]
+  #[serde(default, deserialize_with = "deserialize_task")]
   pub tasks: HashMap<String, Task>,
-  #[serde(default = "self::de::default_concurrency")]
+  #[serde(default = "default_concurrency")]
   pub concurrency: i64,
   pub notification: Option<Notification>,
   pub working_dir: Option<String>,
@@ -37,12 +38,21 @@ pub struct Notification {
 #[derive(Debug, PartialEq, Clone, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Slack {
-  #[serde(deserialize_with = "self::de::notification_slack_url")]
+  #[serde(
+    default = "default_notification_slack_url",
+    deserialize_with = "notification_slack_url"
+  )]
   pub url: String,
-  #[serde(deserialize_with = "self::de::notification_slack_channel")]
+  #[serde(
+    default = "default_notification_slack_channel",
+    deserialize_with = "notification_slack_channel"
+  )]
   pub channel: String,
   pub emoji: Option<String>,
-  #[serde(default, deserialize_with = "self::de::notification_slack_username")]
+  #[serde(
+    default = "default_notification_slack_username",
+    deserialize_with = "notification_slack_username"
+  )]
   pub username: Option<String>,
   pub when: Option<WhenNotify>,
 }
@@ -50,9 +60,15 @@ pub struct Slack {
 #[derive(Debug, PartialEq, Clone, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Discord {
-  #[serde(deserialize_with = "self::de::notification_discord_url")]
+  #[serde(
+    default = "default_notification_discord_url",
+    deserialize_with = "notification_discord_url"
+  )]
   pub url: String,
-  #[serde(default, deserialize_with = "self::de::notification_discord_username")]
+  #[serde(
+    default = "default_notification_discord_username",
+    deserialize_with = "notification_discord_username"
+  )]
   pub username: Option<String>,
   pub when: Option<WhenNotify>,
 }
@@ -69,7 +85,7 @@ pub struct Print {
 pub struct Mail {
   pub from: MailAddress,
   pub to: MailAddress,
-  #[serde(default = "self::de::default_email_subject")]
+  #[serde(default = "default_email_subject")]
   pub subject: String,
   pub smtp: MailSMTP,
   pub when: Option<WhenNotify>,
@@ -89,18 +105,24 @@ pub enum MailAddress {
 #[derive(Debug, PartialEq, Clone, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct MailSMTP {
-  #[serde(deserialize_with = "self::de::notification_email_smtp_hostname")]
+  #[serde(
+    default = "default_notification_email_smtp_hostname",
+    deserialize_with = "notification_email_smtp_hostname"
+  )]
   pub hostname: String,
-  #[serde(default = "self::de::default_email_port")]
+  #[serde(default = "default_email_port")]
   pub port: u16,
   #[serde(
-    default,
-    deserialize_with = "self::de::notification_email_smtp_username"
+    default = "default_notification_email_smtp_username",
+    deserialize_with = "notification_email_smtp_username"
   )]
   pub username: Option<String>,
-  #[serde(deserialize_with = "self::de::notification_email_smtp_secret")]
+  #[serde(
+    default = "default_notification_email_smtp_secret",
+    deserialize_with = "notification_email_smtp_secret"
+  )]
   pub secret: String,
-  #[serde(default = "self::de::default_true")]
+  #[serde(default = "default_true")]
   pub tls: bool,
 }
 
