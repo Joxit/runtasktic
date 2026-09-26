@@ -25,6 +25,11 @@ pub struct Run {
   /// Can be many task ids with comma separated values.
   #[arg(long = "start", short = 's', number_of_values = 1)]
   starts: Vec<String>,
+  /// File with ids overriding the starting task if the job had already been started before.
+  /// When using many configuration files, start states must be in the first configuration file.
+  /// The file must be one id per line.
+  #[arg(long = "start-file", number_of_values = 1)]
+  starts_file: Vec<String>,
   /// Run the task in background
   #[arg(long = "background", short = 'b')]
   background: bool,
@@ -83,12 +88,14 @@ impl Run {
       unsafe { signal(SIGHUP, SIG_IGN) };
     }
 
+    let starts = self.starts()?;
+
     loop {
       self.cron.wait(timezone);
 
       for (i, config) in self.config.iter().enumerate() {
-        let starts = if i == 0 { self.starts.clone() } else { vec![] };
-        self.run(&config.as_path(), &starts)?;
+        let starts = if i == 0 { &starts } else { &vec![] };
+        self.run(&config.as_path(), starts)?;
       }
       if self.cron.is_none() {
         return Ok(());
@@ -242,6 +249,20 @@ impl Run {
     debug!("All task ended, {exit_success} success and {exit_failure} failures in {elapsed}s",);
 
     Ok(())
+  }
+
+  fn starts(&self) -> anyhow::Result<Vec<String>> {
+    let mut starts = vec![self.starts.clone()];
+    for file in &self.starts_file {
+      starts.push(
+        fs::read_to_string(file)?
+          .split("\n")
+          .filter(|s| !s.is_empty())
+          .map(|s| s.to_string())
+          .collect(),
+      );
+    }
+    Ok(starts.concat())
   }
 
   fn stdin(&self) -> Stdio {

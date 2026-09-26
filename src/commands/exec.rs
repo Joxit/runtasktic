@@ -100,9 +100,7 @@ impl Exec {
         .tasks()
         .get(task)
         .ok_or(anyhow!(
-          "The task `{}` does not exist in your config file `{}`",
-          task,
-          path
+          "The task `{task}` does not exist in your config file `{path}`"
         ))?
         .clone()
     } else {
@@ -126,7 +124,7 @@ impl Exec {
       .stderr_opt(&config.stderr, !self.background)?
       .working_dir(&config.working_dir)?
       .spawn()
-      .with_context(|| format!("Can't run command `{}`", cmd_line))?;
+      .with_context(|| format!("Can't run command `{cmd_line}`"))?;
 
     let exit = child.wait().unwrap();
     let elapsed = (Local::now() - start).num_milliseconds() as f64 / 1000f64;
