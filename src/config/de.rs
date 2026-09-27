@@ -139,7 +139,6 @@ where
 }
 
 pub fn default_notification_discord_username() -> Option<String> {
-  println!("before");
   if let Ok(env) = get_env(ENV_NOTIFICATION_DISCORD_USERNAME)
     && !env.is_empty()
   {
