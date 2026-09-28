@@ -6,7 +6,11 @@ use std::os::unix::prelude::OpenOptionsExt;
 use std::{env, fs};
 
 #[derive(Parser, Debug)]
-pub struct Update {}
+pub struct Update {
+  /// Update binary using prebuild github binary. Unsafe operation since runtasktic needs a specific version of libc
+  #[arg(long = "github")]
+  github: bool,
+}
 
 impl Update {
   pub fn exec(&self) -> Result<()> {
@@ -14,6 +18,27 @@ impl Update {
   }
 
   fn update(&self) -> Result<()> {
+    let (latest_version, body) = Self::get_latest_version()?;
+    let current_version = env!("CARGO_PKG_VERSION").to_string();
+
+    if current_version != latest_version {
+      println!("Current project version is {current_version}, update {latest_version} available");
+      println!("Update with `cargo install runtasktic`");
+      if let Some(body) = body {
+        println!("RELEASE NOTE:");
+        print!("{body}");
+      }
+      if self.github {
+        Self::github_update_binary(&latest_version)?;
+      }
+    } else {
+      println!("Current project version is {current_version}, no update available");
+    }
+
+    Ok(())
+  }
+
+  fn github_update_binary(version: &String) -> Result<()> {
     let path = env::current_exe().with_context(|| "Cannot find the executable")?;
     let metadata = fs::metadata(&path)
       .with_context(|| anyhow!("Cannot find metadata of the executable {}", path.display()))?;
@@ -30,9 +55,8 @@ impl Update {
     );
     let new_path = path.with_extension("tmp");
     let mode = metadata.permissions().mode();
-    let latest_version = Self::get_latest_version()?;
-    let binary = Self::get_binary(&latest_version)?;
-    let digest = Self::get_sha256(&latest_version)?;
+    let binary = Self::get_binary(&version)?;
+    let digest = Self::get_sha256(&version)?;
     let binary_digest = sha256::digest(&binary);
 
     ensure!(
@@ -55,11 +79,10 @@ impl Update {
 
     fs::rename(&new_path, &path)
       .with_context(|| anyhow!("Cannot rename {} to {}", new_path.display(), path.display()))?;
-
     Ok(())
   }
 
-  fn get_latest_version() -> Result<String> {
+  fn get_latest_version() -> Result<(String, Option<String>)> {
     let response = attohttpc::get("https://api.github.com/repos/Joxit/runtasktic/releases/latest")
       .send()
       .with_context(|| "Cannot get the latest version of the project")?;
@@ -89,13 +112,18 @@ impl Update {
 
     let tag_name = obj.get("tag_name");
 
-    if let Some(body) = obj.get("body") {
-      println!("{}", body);
-    }
+    let body = if let Some(body) = obj.get("body") {
+      body.as_str().map(|body| body.to_string())
+    } else {
+      None
+    };
 
     let err = anyhow!("The tag cannot be parsed");
     if let Some(test) = tag_name {
-      test.as_str().map(|version| version.to_string()).ok_or(err)
+      test
+        .as_str()
+        .map(|version| (version.to_string(), body))
+        .ok_or(err)
     } else {
       Err(err)
     }
