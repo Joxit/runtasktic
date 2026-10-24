@@ -8,7 +8,7 @@ Runtasktic is a _fantastic_ command-line task management tool for execution of r
 
 There are often tasks that we repeat several times in predefined orders. Some of these tasks can take time and we would like to be notified when it ends. This is why this project exists.
 
-Describe your tasks in a YAML file, execute all of them with runtasktic in foreground or background. Configure the notification system, and be notified at the end of each task or when they are all finished. Onlyt Slack is supported right now, need more ? Submit a Feature Request or Pull Request.
+Describe your tasks in a YAML file, execute all of them with runtasktic in foreground or background. Configure the notification system, and be notified at the end of each task or when they are all finished.
 
 ## When should I need runtasktic ?
 
@@ -75,6 +75,9 @@ Arguments:
 Options:
   -s, --start <STARTS>
           Override the starting task if the job had already been started before. When using many configuration files, start states must be in the first configuration file. Can be many task ids with comma separated values
+
+      --start-file <STARTS_FILE>
+          File with ids overriding the starting task if the job had already been started before. When using many configuration files, start states must be in the first configuration file. The file must be one id per line
 
   -b, --background
           Run the task in background
@@ -173,10 +176,11 @@ Options:
 ```
 Self update of the binary
 
-Usage: runtasktic update
+Usage: runtasktic update [OPTIONS]
 
 Options:
-  -h, --help  Print help
+      --github  Update binary using github binary. Unsafe operation since runtasktic needs a specific version of libc
+  -h, --help    Print help
 ```
 
 ## Configuration

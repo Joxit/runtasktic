@@ -1,6 +1,6 @@
 [package]
 name = "runtasktic"
-version = "1.2.2"
+version = "1.3.0"
 authors = ["Jones Magloire @Joxit"]
 description = "Command-line task management tool for execution of regular long sequential or parallel tasks."
 edition = "2024"
