@@ -128,12 +128,12 @@ impl Run {
     }
 
     for task in config.tasks.values() {
-      if (task.depends_on().len() == 0 && starts.len() == 0)
+      if (task.depends_on.len() == 0 && starts.len() == 0)
         || (starts.len() > 0 && starts.contains(task.id()))
       {
         graph.add_start_state(task.state());
       } else {
-        for prev in task.depends_on().iter() {
+        for prev in task.depends_on.iter() {
           let err_msg = anyhow!("{} depends on {} but does not exists", task.id(), prev);
           let prev_state = config.tasks.get(prev).ok_or(err_msg)?.state();
           graph.add_arc(prev_state, task.state());
@@ -170,9 +170,10 @@ impl Run {
         && (graph_iter.n_in_progress() < config.concurrency || config.concurrency < 0)
         && !ask_for_exit
       {
-        let task = graph_iter.next().unwrap();
-        let label = task.label().to_string();
-        let cmd_line = config.tasks().get(&label).unwrap().full_command();
+        let task_fst = graph_iter.next().unwrap();
+        let label = task_fst.label().to_string();
+        let task = config.tasks().get(&label).unwrap();
+        let cmd_line = task.full_command();
         debug!("Executing task {label}");
         let child = Command::new("sh")
           .arg("-c")
@@ -180,10 +181,10 @@ impl Run {
           .stdin(self.stdin())
           .stdout_opt(&config.stdout, !self.background)?
           .stderr_opt(&config.stderr, !self.background)?
-          .working_dir(&config.working_dir)?
+          .working_dir(&config.working_dir(&task))?
           .spawn()
           .with_context(|| format!("Can't run command `{}`", cmd_line))?;
-        processes[task.id()] = Some(ChildStatus::new(child));
+        processes[task_fst.id()] = Some(ChildStatus::new(child));
       } else if graph_iter.is_done() {
         break;
       } else {
@@ -220,7 +221,7 @@ impl Run {
                   .filter(|j| !j.is_finished())
                   .collect::<Vec<JoinHandle<()>>>();
               }
-              let on_failure = config.tasks.get(&label).unwrap().on_failure().clone();
+              let on_failure = config.tasks.get(&label).unwrap().on_failure.clone();
 
               if is_failure && on_failure.unwrap_or(config.on_failure) == OnFailure::Exit {
                 ask_for_exit = true;

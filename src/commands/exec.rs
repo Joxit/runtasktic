@@ -122,7 +122,7 @@ impl Exec {
       .stdin(self.stdin())
       .stdout_opt(&config.stdout, !self.background)?
       .stderr_opt(&config.stderr, !self.background)?
-      .working_dir(&config.working_dir)?
+      .working_dir(&config.working_dir(&task))?
       .spawn()
       .with_context(|| format!("Can't run command `{cmd_line}`"))?;
 

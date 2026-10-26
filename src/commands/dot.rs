@@ -40,10 +40,10 @@ impl Dot {
     }
 
     for task in config.tasks().values() {
-      if task.depends_on().len() == 0 {
+      if task.depends_on.len() == 0 {
         graph.add_start_state(task.state());
       } else {
-        for prev in task.depends_on().iter() {
+        for prev in task.depends_on.iter() {
           let err_msg = format!("{} depends on {} but does not exists", task.id(), prev);
           let prev_state = config.tasks().get(prev).ok_or(anyhow!(err_msg))?.state();
           graph.add_arc(prev_state, task.state());

@@ -163,6 +163,14 @@ impl Config {
   pub fn tasks_values_mut(&'_ mut self) -> std::collections::hash_map::ValuesMut<'_, String, Task> {
     self.tasks.values_mut()
   }
+
+  pub fn working_dir(&self, task: &Task) -> Option<String> {
+    if let Some(working_dir) = &task.working_dir {
+      Some(working_dir.clone())
+    } else {
+      self.working_dir.clone()
+    }
+  }
 }
 
 impl Notification {
