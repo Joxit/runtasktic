@@ -1,5 +1,5 @@
+use super::replace_templates;
 use crate::config::Slack;
-use crate::notification::replace_templates;
 
 pub fn post_slack(slack: &Slack, message: &str) -> Result<(), String> {
   let mut content = json::object! {

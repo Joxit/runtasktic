@@ -1,5 +1,5 @@
 use crate::config::Discord;
-use crate::notification::replace_templates;
+use super::replace_templates;
 
 pub fn post_discord(discord: &Discord, message: &str) -> Result<(), String> {
   let content = json::object! {

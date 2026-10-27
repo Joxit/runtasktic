@@ -1,19 +1,17 @@
 use crate::config::{Config, OnFailure};
-use crate::fst::*;
+use crate::fst::TaskFst;
 use crate::utils::logger;
 use crate::utils::traits::{CommandConfig, WaitSchedule};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Local};
 use clap::Parser;
 use cron::Schedule;
-use libc::{SIG_IGN, SIGHUP};
-use libc::{fork, signal};
+use libc::{SIG_IGN, SIGHUP, fork, signal};
 use std::fs;
 use std::future::IntoFuture;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
-use tokio::runtime::Runtime;
-use tokio::task::JoinHandle;
+use tokio::{runtime::Runtime, task::JoinHandle};
 
 #[derive(Parser, Debug)]
 pub struct Run {

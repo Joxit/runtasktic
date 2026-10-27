@@ -1,7 +1,7 @@
+use self::iter::TaskIter;
+
 pub mod dot;
 mod iter;
-
-use self::iter::*;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TaskFst {

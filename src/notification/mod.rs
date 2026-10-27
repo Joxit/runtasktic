@@ -1,7 +1,7 @@
-pub use crate::notification::discord::*;
-pub use crate::notification::mail::*;
-pub use crate::notification::print::*;
-pub use crate::notification::slack::*;
+pub use self::discord::*;
+pub use self::mail::*;
+pub use self::print::*;
+pub use self::slack::*;
 use chrono::{DateTime, TimeZone};
 use hostname::get as get_hostname;
 use regex::Regex;

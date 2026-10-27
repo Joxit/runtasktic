@@ -1,8 +1,3 @@
-use crate::commands::completion::Completion;
-use crate::commands::dot::Dot;
-use crate::commands::exec::Exec;
-use crate::commands::run::Run;
-use crate::commands::update::Update;
 use crate::config::{Config, WhenNotify};
 use anyhow::Result;
 use clap::Parser;
@@ -20,21 +15,21 @@ pub enum Command {
   ///
   /// Set the notification, messages, output files, concurency, working directory and many more options in your configuration.
   #[command(name = "run")]
-  Run(Run),
+  Run(run::Run),
   /// Export the configuration to a graph (needs graphviz/dot).
   #[command(name = "dot")]
-  Dot(Dot),
+  Dot(dot::Dot),
   /// Execute a single command with notification in background or foreground.
   ///
   /// Inherit the notification from a configuration file and set your default one in your home: `~/.runtasktic.yml` or `~/.runtasktic.yaml`.
   #[command(name = "exec")]
-  Exec(Exec),
+  Exec(exec::Exec),
   /// Generate completion script for your shell.
   #[command(name = "completion", subcommand)]
-  Completion(Completion),
+  Completion(completion::Completion),
   /// Self update of the binary.
   #[command(name = "update")]
-  Update(Update),
+  Update(update::Update),
 }
 
 impl Command {

@@ -1,6 +1,6 @@
 use crate::config::Config;
-use crate::fst::dot::*;
-use crate::fst::*;
+use crate::fst::TaskFst;
+use crate::fst::dot::{dot_write_file, dot_write_png};
 use anyhow::{Context, Result};
 use clap::Parser;
 use std::fs;

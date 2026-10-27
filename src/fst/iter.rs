@@ -1,4 +1,4 @@
-use super::*;
+use super::{TaskFst, TaskFstState};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TaskIter {

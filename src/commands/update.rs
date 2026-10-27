@@ -1,9 +1,7 @@
 use anyhow::{Context, Result};
 use clap::Parser;
-use std::io::Write;
-use std::os::unix::fs::PermissionsExt;
-use std::os::unix::prelude::OpenOptionsExt;
-use std::{env, fs};
+use std::os::unix::{fs::PermissionsExt, prelude::OpenOptionsExt};
+use std::{env, fs, io::Write};
 
 #[derive(Parser, Debug)]
 pub struct Update {

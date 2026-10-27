@@ -1,7 +1,6 @@
 use crate::config::Print;
 use chrono::Local;
-use std::fs::OpenOptions;
-use std::io::Write;
+use std::{fs::OpenOptions, io::Write};
 
 pub fn notification_print(print: &Print, message: &str) -> Result<(), String> {
   writeln(
