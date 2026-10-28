@@ -6,6 +6,7 @@ mod commands;
 mod config;
 mod fst;
 mod notification;
+mod process;
 mod utils;
 
 #[macro_use]

@@ -1,5 +1,6 @@
 use self::de::*;
 pub use self::task::Task;
+use crate::process::ExitStatus;
 use anyhow::Result;
 use std::collections::HashMap;
 
@@ -174,8 +175,8 @@ impl Config {
 }
 
 impl Notification {
-  pub async fn notify_task_end(&self, task: &Task, status_code: std::process::ExitStatus) {
-    let success = Some(status_code.success());
+  pub async fn notify_task_end(&self, task: &Task, exit: ExitStatus) {
+    let success = Some(exit.success);
     if !self.when.should_notify(&WhenNotify::TaskEnd, success) {
       return;
     }
@@ -186,7 +187,7 @@ impl Notification {
     let msg = msg.replace("{task.id}", &id);
     let msg = msg.replace("{task.full_cmd}", &task.full_command());
     let msg = msg.replace("{task.short_cmd}", &short_cmd);
-    let msg = msg.replace("{task.status_code}", &format!("{}", status_code));
+    let msg = msg.replace("{task.status_code}", &format!("{}", exit.status));
 
     if let Some(print) = self.print.notify(&WhenNotify::TaskEnd, success) {
       if let Err(e) = crate::notification::notification_print(&print, msg.as_str()) {
@@ -341,12 +342,14 @@ impl<T: Clone + When> Notify for Option<T> {
 impl Default for Messages {
   fn default() -> Self {
     Self {
-      task_end: String::from("Task {task.id} ended with status code {task.status_code}"),
+      task_end: String::from(
+        "`{hostname}`: Task `{task.id}` ended with status code {task.status_code}",
+      ),
       all_tasks_end: String::from(
-        "All tasks ended. Got {resume.success} success and {resume.failures} failure.",
+        "`{hostname}`: All tasks ended. Got {resume.success} success and {resume.failures} failure.",
       ),
       task_failed: String::from(
-        "Tasks ended prematurely. Got {resume.success} success and {resume.failures} failure. Contains one critical failure.",
+        "`{hostname}`: Tasks ended prematurely. Got {resume.success} success and {resume.failures} failure. Contains one critical failure.",
       ),
     }
   }

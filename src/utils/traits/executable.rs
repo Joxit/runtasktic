@@ -1,7 +1,34 @@
+use crate::config::Config;
+use crate::process::Process;
 use anyhow::{Context, Result};
 use std::fs::{File, OpenOptions};
 use std::path::Path;
 use std::process::{Command, Stdio};
+
+pub trait Executable {
+  fn exec(&self, config: &Config, background: bool) -> Result<Process>;
+}
+
+impl Executable for crate::config::Task {
+  fn exec(&self, config: &Config, background: bool) -> Result<Process> {
+    let cmd_line = self.full_command();
+    let stdin = if background {
+      Stdio::null()
+    } else {
+      Stdio::inherit()
+    };
+    let child = Command::new("sh")
+      .arg("-c")
+      .arg(cmd_line.to_string())
+      .stdin(stdin)
+      .stdout_opt(&config.stdout, !background)?
+      .stderr_opt(&config.stderr, !background)?
+      .working_dir(&config.working_dir(&self))?
+      .spawn()
+      .with_context(|| format!("Can't run command `{}`", cmd_line))?;
+    Ok(Process::new(child))
+  }
+}
 
 pub trait CommandConfig {
   fn working_dir(&mut self, dir: &Option<String>) -> Result<&mut Self>;

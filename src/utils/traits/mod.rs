@@ -1,5 +1,5 @@
-pub(crate) use command_config::CommandConfig;
+pub(crate) use executable::Executable;
 pub(crate) use wait_schedule::WaitSchedule;
 
-mod command_config;
+mod executable;
 mod wait_schedule;

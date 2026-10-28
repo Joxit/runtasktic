@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::utils::logger;
-use crate::utils::traits::{CommandConfig, WaitSchedule};
+use crate::utils::traits::{Executable, WaitSchedule};
 use anyhow::{Context, Result};
 use chrono::Local;
 use clap::Parser;
@@ -8,7 +8,7 @@ use cron::Schedule;
 use libc::{SIG_IGN, SIGHUP, fork, signal};
 use std::fs;
 use std::path::PathBuf;
-use std::process::{Command, Stdio, exit};
+use std::process::exit;
 use tokio::runtime::Runtime;
 
 #[derive(Parser, Debug)]
@@ -107,30 +107,19 @@ impl Exec {
       let id = self.name.clone().unwrap_or(format!(""));
       crate::config::Task::new(id, vec![self.command.join(" ")], vec![], None)
     };
-    let cmd_line = task.full_command();
     let label = task.label();
-    let start = chrono::Local::now();
     debug!("Executing task {label}");
 
     for notif_arg in &self.notification {
       notif_arg.config_mut(&mut config);
     }
 
-    let mut child = Command::new("sh")
-      .arg("-c")
-      .arg(&cmd_line)
-      .stdin(self.stdin())
-      .stdout_opt(&config.stdout, !self.background)?
-      .stderr_opt(&config.stderr, !self.background)?
-      .working_dir(&config.working_dir(&task))?
-      .spawn()
-      .with_context(|| format!("Can't run command `{cmd_line}`"))?;
+    let mut process = task.exec(&config, self.background)?;
 
-    let exit = child.wait().unwrap();
-    let elapsed = (Local::now() - start).num_milliseconds() as f64 / 1000f64;
+    let exit = process.wait().unwrap();
     debug!(
-      "Task {label} finished with status code {} in {elapsed}s",
-      exit.code().unwrap_or(-255),
+      "Task {label} finished with status code {} in {}s",
+      exit.status, exit.elapsed,
     );
 
     if let Some(notification) = config.notification {
@@ -138,14 +127,6 @@ impl Exec {
     }
 
     Ok(())
-  }
-
-  fn stdin(&self) -> Stdio {
-    if self.background {
-      Stdio::null()
-    } else {
-      Stdio::inherit()
-    }
   }
 
   fn default_config_path(&self) -> Option<PathBuf> {

@@ -1,16 +1,16 @@
 use crate::config::{Config, OnFailure};
 use crate::fst::TaskFst;
+use crate::process::Process;
 use crate::utils::logger;
-use crate::utils::traits::{CommandConfig, WaitSchedule};
+use crate::utils::traits::{Executable, WaitSchedule};
 use anyhow::{Context, Result};
-use chrono::{DateTime, Local};
+use chrono::Local;
 use clap::Parser;
 use cron::Schedule;
 use libc::{SIG_IGN, SIGHUP, fork, signal};
 use std::fs;
 use std::future::IntoFuture;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
 use tokio::{runtime::Runtime, task::JoinHandle};
 
 #[derive(Parser, Debug)]
@@ -40,24 +40,6 @@ pub struct Run {
   /// Display debug messages on STDERR
   #[arg(long = "verbose", short = 'v')]
   verbose: bool,
-}
-
-struct ChildStatus {
-  child: Child,
-  start: DateTime<Local>,
-}
-
-impl ChildStatus {
-  pub fn new(child: Child) -> Self {
-    ChildStatus {
-      child,
-      start: Local::now(),
-    }
-  }
-
-  pub fn elapsed(&self) -> f64 {
-    (Local::now() - self.start).num_milliseconds() as f64 / 1000f64
-  }
 }
 
 impl Run {
@@ -143,7 +125,7 @@ impl Run {
       bail!("Can't execute your configuration. There is a deadlock in your tasks !");
     }
 
-    let processes: &mut Vec<Option<ChildStatus>> = &mut vec![];
+    let processes: &mut Vec<Option<Process>> = &mut vec![];
     for _ in 0..graph.len() {
       processes.push(None);
     }
@@ -171,27 +153,18 @@ impl Run {
         let task_fst = graph_iter.next().unwrap();
         let label = task_fst.label().to_string();
         let task = config.tasks().get(&label).unwrap();
-        let cmd_line = task.full_command();
         debug!("Executing task {label}");
-        let child = Command::new("sh")
-          .arg("-c")
-          .arg(cmd_line.to_string())
-          .stdin(self.stdin())
-          .stdout_opt(&config.stdout, !self.background)?
-          .stderr_opt(&config.stderr, !self.background)?
-          .working_dir(&config.working_dir(&task))?
-          .spawn()
-          .with_context(|| format!("Can't run command `{}`", cmd_line))?;
-        processes[task_fst.id()] = Some(ChildStatus::new(child));
+        let process = task.exec(&config, self.background)?;
+        processes[task_fst.id()] = Some(process);
       } else if graph_iter.is_done() {
         break;
       } else {
         let mut done = 0;
         for id in 0..processes.len() {
-          if let Some(child_status) = processes[id].as_mut() {
-            if let Ok(Some(exit)) = child_status.child.try_wait() {
+          if let Some(process) = processes[id].as_mut() {
+            if let Ok(Some(exit)) = process.try_wait() {
               let label = graph.get_state_from_id(id).label().to_string();
-              let is_failure = if exit.success() {
+              let is_failure = if exit.success {
                 exit_success = exit_success + 1;
                 false
               } else {
@@ -200,8 +173,7 @@ impl Run {
               };
               debug!(
                 "Task {label} finished with status code {} in {}s",
-                exit.code().unwrap_or(-255),
-                child_status.elapsed()
+                exit.status, exit.elapsed
               );
 
               done = done + 1;
@@ -262,13 +234,5 @@ impl Run {
       );
     }
     Ok(starts.concat())
-  }
-
-  fn stdin(&self) -> Stdio {
-    if self.background {
-      Stdio::null()
-    } else {
-      Stdio::inherit()
-    }
   }
 }

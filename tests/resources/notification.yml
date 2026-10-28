@@ -55,6 +55,6 @@ notification:
       tls: false
   when: always
   messages:
-    task_end: Task {task.id} ended with status code {task.status_code}
-    all_tasks_end: All tasks ended. Got {resume.success} success and {resume.failures} failure.
-    task_failed: Tasks ended prematurely. Got {resume.success} success and {resume.failures} failure. Contains one critical failure.
+    task_end: '`{hostname}`: Task `{task.id}` ended with status code {task.status_code}'
+    all_tasks_end: '`{hostname}`: All tasks ended. Got {resume.success} success and {resume.failures} failure.'
+    task_failed: '`{hostname}`: Tasks ended prematurely. Got {resume.success} success and {resume.failures} failure. Contains one critical failure.'
