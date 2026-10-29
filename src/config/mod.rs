@@ -563,43 +563,43 @@ mod test {
 
     let a1 = Task::new(
       "a1",
-      vec![echo("Begin a1"), sleep("0.5"), echo("End a1")],
+      vec![echo("Begin {task.id} at {date.utc.now}"), sleep("0.5"), echo("End a1")],
       vec![],
       None,
     );
     let a2 = Task::new(
       "a2",
-      vec![echo("Begin a2"), sleep("1"), echo("End a2")],
+      vec![echo("Begin {task.id} at {date.utc.today}"), sleep("1"), echo("End a2")],
       vec![],
       None,
     );
     let b = Task::new(
       "b",
-      vec![echo("Begin b"), sleep("0.5"), echo("End b")],
+      vec![echo("Begin {task.id} at {date.utc.time}"), sleep("0.5"), echo("End b")],
       vs(&["a1", "a2"]),
       None,
     );
     let c = Task::new(
       "c",
-      vec![echo("Begin c"), sleep("1"), echo("End c")],
+      vec![echo("Begin {task.id} at {date.local.now}"), sleep("1"), echo("End c")],
       vs(&["a1"]),
       None,
     );
     let d = Task::new(
       "d",
-      vec![echo("Begin d"), sleep("0.5"), echo("End d")],
+      vec![echo("Begin {task.id} at {date.local.today}"), sleep("0.5"), echo("End d")],
       vs(&["a1"]),
       None,
     );
     let e = Task::new(
       "e",
-      vec![echo("Begin e"), sleep("0.5"), echo("End e")],
+      vec![echo("Begin {task.id} at {date.local.time}"), sleep("0.5"), echo("End e")],
       vs(&["b", "c", "d"]),
       None,
     );
     let f = Task::new(
       "f",
-      vec![echo("Begin f"), sleep("1"), echo("End f")],
+      vec![echo("Begin {task.id} on {hostname}"), sleep("1"), echo("End f")],
       vs(&["c"]),
       None,
     );

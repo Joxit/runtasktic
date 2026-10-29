@@ -1,3 +1,4 @@
+use crate::notification;
 use super::OnFailure;
 
 #[derive(Debug, PartialEq, Clone, serde::Deserialize)]
@@ -38,7 +39,8 @@ impl Task {
     &self.id
   }
   pub fn full_command(&self) -> String {
-    self.commands.join(" && ")
+    let command = self.commands.join(" && ").replace("{task.id}", &self.label());
+    notification::replace_templates(command)
   }
   pub fn short_command(&self) -> String {
     if self.commands.len() > 0 {

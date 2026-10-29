@@ -1,41 +1,41 @@
 tasks:
   a1:
     commands:
-      - echo Begin a1
+      - echo Begin {task.id} at {date.utc.now}
       - sleep 0.5
       - echo End a1
   a2:
     commands:
-      - echo Begin a2
+      - echo Begin {task.id} at {date.utc.today}
       - sleep 1
       - echo End a2
   b:
     commands:
-      - echo Begin b
+      - echo Begin {task.id} at {date.utc.time}
       - sleep 0.5
       - echo End b
     depends_on: [ a1, a2 ]
   c:
     commands:
-      - echo Begin c
+      - echo Begin {task.id} at {date.local.now}
       - sleep 1
       - echo End c
     depends_on: [ a1 ]
   d:
     commands:
-      - echo Begin d
+      - echo Begin {task.id} at {date.local.today}
       - sleep 0.5
       - echo End d
     depends_on: [ a1 ]
   e:
     commands:
-      - echo Begin e
+      - echo Begin {task.id} at {date.local.time}
       - sleep 0.5
       - echo End e
     depends_on: [ b, c, d ]
   f:
     commands:
-      - echo Begin f
+      - echo Begin {task.id} on {hostname}
       - sleep 1
       - echo End f
     depends_on: [ c ]
