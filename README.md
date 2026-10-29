@@ -262,6 +262,10 @@ Here is the list of available templates you can use in your messages sended by t
 - `{task.status_code}`: Returned status code by the task. Supported by `task_end`.
 - `{task.short_cmd}`: Short command of the task, should be the binary/exec. Supported by `task_end`.
 - `{task.full_cmd}`: The full command line of the task. Supported by `task_end`.
+- `{task.elapsed.ms}`: Total time elapsed in milliseconds since the task started (e.g. `70200ms`). Supported by `task_end`.
+- `{task.elapsed.seconds}`: Total time elapsed in seconds since the task started (e.g. `70.2s`). Supported by `task_end`.
+- `{task.elapsed.short}`: Total time elapsed since the task started in pretty short format version (e.g. `1m 10.2s`). Supported by `task_end`.
+- `{task.elapsed.long}`: Total time elapsed since the task started in pretty long format version (e.g. `1 minute 10.2 seconds`). Supported by `task_end`.
 - `{resume.success}`: Number of tasks with success status code. Supported by `all_task_end`, `task_failed`.
 - `{resume.failures}`: Number of tasks with failure status code. Supported by `all_task_end`, `task_failed`.
 - `{hostname}`: Returns the host name. Supported globally.

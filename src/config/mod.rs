@@ -188,6 +188,16 @@ impl Notification {
     let msg = msg.replace("{task.full_cmd}", &task.full_command());
     let msg = msg.replace("{task.short_cmd}", &short_cmd);
     let msg = msg.replace("{task.status_code}", &format!("{}", exit.status));
+    let msg = msg.replace(
+      "{task.elapsed.seconds}",
+      &format!("{}", exit.elapsed_seconds()),
+    );
+    let msg = msg.replace("{task.elapsed.short}", &format!("{}", exit.elapsed_short()));
+    let msg = msg.replace("{task.elapsed.long}", &format!("{}", exit.elapsed_long()));
+    let msg = msg.replace(
+      "{task.elapsed.ms}",
+      &format!("{}", exit.elapsed_milliseconds()),
+    );
 
     if let Some(print) = self.print.notify(&WhenNotify::TaskEnd, success) {
       if let Err(e) = crate::notification::notification_print(&print, msg.as_str()) {
