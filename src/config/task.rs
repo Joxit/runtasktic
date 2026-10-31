@@ -1,7 +1,7 @@
-use crate::notification;
 use super::OnFailure;
+use std::collections::HashMap;
 
-#[derive(Debug, PartialEq, Clone, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, serde::Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub struct Task {
   #[serde(skip)]
@@ -14,6 +14,9 @@ pub struct Task {
   pub on_failure: Option<OnFailure>,
   #[serde(default)]
   pub working_dir: Option<String>,
+  #[serde(default)]
+  pub environment: HashMap<String, String>,
+  pub env_file: Option<String>,
   #[serde(skip)]
   state: usize,
 }
@@ -30,8 +33,7 @@ impl Task {
       commands,
       depends_on,
       on_failure,
-      working_dir: None,
-      state: 0,
+      ..Default::default()
     }
   }
 
@@ -39,8 +41,11 @@ impl Task {
     &self.id
   }
   pub fn full_command(&self) -> String {
-    let command = self.commands.join(" && ").replace("{task.id}", &self.label());
-    notification::replace_templates(command)
+    let command = self
+      .commands
+      .join(" && ")
+      .replace("{task.id}", &self.label());
+    super::templates::replace(command, &self.environment)
   }
   pub fn short_command(&self) -> String {
     if self.commands.len() > 0 {

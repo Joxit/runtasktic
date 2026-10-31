@@ -2,10 +2,11 @@ use self::de::*;
 pub use self::task::Task;
 use crate::process::ExitStatus;
 use anyhow::Result;
-use std::collections::HashMap;
+use std::{collections::HashMap, fs};
 
 mod de;
 mod task;
+mod templates;
 
 #[derive(Debug, PartialEq, Clone, Default, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -20,6 +21,9 @@ pub struct Config {
   pub stderr: Option<String>,
   #[serde(default)]
   pub on_failure: OnFailure,
+  #[serde(default)]
+  pub environment: HashMap<String, String>,
+  pub env_file: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Clone, serde::Deserialize)]
@@ -154,7 +158,35 @@ pub struct Messages {
 
 impl Config {
   pub fn from_str(s: &str) -> Result<Config> {
-    Ok(serde_yaml::from_str(s)?)
+    let mut config: Config = serde_yaml::from_str(s)?;
+    let file_content = if let Some(file) = &config.env_file {
+      fs::read_to_string(file)?
+    } else {
+      fs::read_to_string(".env").unwrap_or_default()
+    };
+    for (k, v) in templates::parse_env_file(&file_content).iter() {
+      if !config.environment.contains_key(k) {
+        config.environment.insert(k.to_string(), v.to_string());
+      }
+    }
+    for task in config.tasks.values_mut() {
+      let env = if let Some(file) = &task.env_file {
+        templates::parse_env_file(&fs::read_to_string(file)?)
+      } else {
+        Default::default()
+      };
+      for (k, v) in env.iter() {
+        if !task.environment.contains_key(k) {
+          task.environment.insert(k.to_string(), v.to_string());
+        }
+      }
+      for (k, v) in config.environment.iter() {
+        if !task.environment.contains_key(k) {
+          task.environment.insert(k.to_string(), v.to_string());
+        }
+      }
+    }
+    Ok(config)
   }
 
   pub fn tasks(&self) -> &HashMap<String, Task> {
@@ -183,7 +215,7 @@ impl Notification {
 
     let short_cmd = task.short_command();
     let id = task.label();
-    let msg = crate::notification::replace_templates(&self.messages.task_end);
+    let msg = self::templates::replace(&self.messages.task_end, &task.environment);
     let msg = msg.replace("{task.id}", &id);
     let msg = msg.replace("{task.full_cmd}", &task.full_command());
     let msg = msg.replace("{task.short_cmd}", &short_cmd);
@@ -224,7 +256,7 @@ impl Notification {
     };
   }
 
-  pub async fn notify_all_tasks_end(&self, success: i32, failures: i32, failed: bool) {
+  pub async fn notify_all_tasks_end(&self, success: i32, failures: i32, failed: bool, environment: &HashMap<String, String>) {
     let is_success = Some(failures == 0);
     if !self.when.should_notify(&WhenNotify::End, is_success) {
       return;
@@ -234,7 +266,7 @@ impl Notification {
     } else {
       &self.messages.task_failed
     };
-    let msg = crate::notification::replace_templates(msg);
+    let msg = self::templates::replace(msg, &environment);
     let msg = msg.replace("{resume.success}", &format!("{}", success));
     let msg = msg.replace("{resume.failures}", &format!("{}", failures));
 
@@ -563,43 +595,71 @@ mod test {
 
     let a1 = Task::new(
       "a1",
-      vec![echo("Begin {task.id} at {date.utc.now}"), sleep("0.5"), echo("End a1")],
+      vec![
+        echo("Begin {task.id} at {date.utc.now}"),
+        sleep("0.5"),
+        echo("End a1"),
+      ],
       vec![],
       None,
     );
     let a2 = Task::new(
       "a2",
-      vec![echo("Begin {task.id} at {date.utc.today}"), sleep("1"), echo("End a2")],
+      vec![
+        echo("Begin {task.id} at {date.utc.today}"),
+        sleep("1"),
+        echo("End a2"),
+      ],
       vec![],
       None,
     );
     let b = Task::new(
       "b",
-      vec![echo("Begin {task.id} at {date.utc.time}"), sleep("0.5"), echo("End b")],
+      vec![
+        echo("Begin {task.id} at {date.utc.time}"),
+        sleep("0.5"),
+        echo("End b"),
+      ],
       vs(&["a1", "a2"]),
       None,
     );
     let c = Task::new(
       "c",
-      vec![echo("Begin {task.id} at {date.local.now}"), sleep("1"), echo("End c")],
+      vec![
+        echo("Begin {task.id} at {date.local.now}"),
+        sleep("1"),
+        echo("End c"),
+      ],
       vs(&["a1"]),
       None,
     );
     let d = Task::new(
       "d",
-      vec![echo("Begin {task.id} at {date.local.today}"), sleep("0.5"), echo("End d")],
+      vec![
+        echo("Begin {task.id} at {date.local.today}"),
+        sleep("0.5"),
+        echo("End d"),
+      ],
       vs(&["a1"]),
       None,
     );
     let e = Task::new(
       "e",
-      vec![echo("Begin {task.id} at {date.local.time}"), sleep("0.5"), echo("End e")],
+      vec![
+        echo("Begin {task.id} at {date.local.time}"),
+        sleep("0.5"),
+        echo("End e"),
+      ],
       vs(&["b", "c", "d"]),
       None,
     );
     let f = Task::new(
       "f",
-      vec![echo("Begin {task.id} on {hostname}"), sleep("1"), echo("End f")],
+      vec![
+        echo("Begin {task.id} on {hostname}"),
+        sleep("1"),
+        echo("End f"),
+      ],
       vs(&["c"]),
       None,
     );

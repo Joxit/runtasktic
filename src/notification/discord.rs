@@ -1,10 +1,9 @@
-use super::replace_templates;
 use crate::config::Discord;
 
 pub fn post_discord(discord: &Discord, message: &str) -> Result<(), String> {
   let content = json::object! {
     "username" => discord.username.clone().unwrap_or("runtasktic".to_string()),
-    "content" => replace_templates(message)
+    "content" => message
   };
 
   let resp = attohttpc::post(&discord.url)

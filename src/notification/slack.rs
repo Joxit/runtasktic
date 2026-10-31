@@ -1,11 +1,10 @@
-use super::replace_templates;
 use crate::config::Slack;
 
 pub fn post_slack(slack: &Slack, message: &str) -> Result<(), String> {
   let mut content = json::object! {
     "channel" => slack.channel.clone(),
     "username" => slack.username.clone().unwrap_or("runtasktic".to_string()),
-    "text" => replace_templates(message)
+    "text" => message
   };
 
   if let Some(emoji) = &slack.emoji {

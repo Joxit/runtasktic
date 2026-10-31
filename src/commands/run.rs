@@ -213,7 +213,12 @@ impl Run {
     }
 
     if let Some(notification) = config.notification {
-      rt.block_on(notification.notify_all_tasks_end(exit_success, exit_failure, ask_for_exit));
+      rt.block_on(notification.notify_all_tasks_end(
+        exit_success,
+        exit_failure,
+        ask_for_exit,
+        &config.environment,
+      ));
     }
 
     let elapsed = (Local::now() - start).num_milliseconds() as f64 / 1000f64;
