@@ -1,0 +1,2 @@
+ENV_1 = "from env_task_file_1"
+ENV_2 = "from env_task_file_2"

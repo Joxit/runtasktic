@@ -1,0 +1,12 @@
+tasks:
+  precedence:
+    commands:
+      - '{env.ENV_1}, {env.ENV_2}, {env.ENV_3}, {env.ENV_4}'
+    environment:
+      ENV_1: 'from task_env_1'
+    env_file: 'tests/resources/env_task_file'
+environment:
+  ENV_1: 'from env_1'
+  ENV_2: 'from env_2'
+  ENV_3: 'from env_3'
+env_file: 'tests/resources/env_file'

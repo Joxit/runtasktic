@@ -1,0 +1,4 @@
+ENV_1 = "from env_file_1"
+ENV_2 = "from env_file_1"
+ENV_3 = "from env_file_3"
+ENV_4 = "from env_file_4"

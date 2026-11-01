@@ -256,7 +256,13 @@ impl Notification {
     };
   }
 
-  pub async fn notify_all_tasks_end(&self, success: i32, failures: i32, failed: bool, environment: &HashMap<String, String>) {
+  pub async fn notify_all_tasks_end(
+    &self,
+    success: i32,
+    failures: i32,
+    failed: bool,
+    environment: &HashMap<String, String>,
+  ) {
     let is_success = Some(failures == 0);
     if !self.when.should_notify(&WhenNotify::End, is_success) {
       return;
@@ -444,6 +450,7 @@ mod test {
   const NOTIFICATION_YAML: &str = "tests/resources/notification.yml";
   const CONCURRENCY_YAML: &str = "tests/resources/concurrency.yml";
   const ON_FAILURE_YAML: &str = "tests/resources/on_failure.yml";
+  const ENVIRONMENT: &str = "tests/resources/environment.yml";
 
   #[test]
   pub fn get_no_tasks() -> anyhow::Result<()> {
@@ -823,5 +830,16 @@ mod test {
 
   fn vs(vec: &[&str]) -> Vec<String> {
     vec.iter().map(|s| s.to_string()).collect()
+  }
+  #[test]
+  fn environment() {
+    let yaml = fs::read_to_string(ENVIRONMENT).unwrap();
+    let config = Config::from_str(yaml.as_str()).unwrap();
+    let precedence = config.tasks.get("precedence").unwrap();
+
+    assert_eq!(
+      precedence.full_command(),
+      format!("from task_env_1, from env_task_file_2, from env_3, from env_file_4")
+    );
   }
 }
