@@ -5,6 +5,19 @@ tasks:
     environment:
       ENV_1: 'from task_env_1'
     env_file: 'tests/resources/env_task_file'
+  empty:
+    commands:
+      - '{env.empty}'
+    env_file: 'tests/resources/env_task_file'
+  eq_no_quote:
+    commands:
+      - '{env.eq_no_quote}'
+  spaces:
+    commands:
+      - '{env.spaces}'
+  trim:
+    commands:
+      - '{env.trim}'
 environment:
   ENV_1: 'from env_1'
   ENV_2: 'from env_2'

@@ -835,11 +835,21 @@ mod test {
   fn environment() {
     let yaml = fs::read_to_string(ENVIRONMENT).unwrap();
     let config = Config::from_str(yaml.as_str()).unwrap();
-    let precedence = config.tasks.get("precedence").unwrap();
+    let tasks = config.tasks;
 
     assert_eq!(
-      precedence.full_command(),
+      tasks.get("precedence").unwrap().full_command(),
       format!("from task_env_1, from env_task_file_2, from env_3, from env_file_4")
+    );
+    assert_eq!(tasks.get("empty").unwrap().full_command(), format!(""));
+    assert_eq!(
+      tasks.get("eq_no_quote").unwrap().full_command(),
+      format!("no quotes")
+    );
+    assert_eq!(tasks.get("spaces").unwrap().full_command(), format!(""));
+    assert_eq!(
+      tasks.get("trim").unwrap().full_command(),
+      format!("trim spaces")
     );
   }
 }
