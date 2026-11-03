@@ -164,14 +164,14 @@ impl Config {
     } else {
       fs::read_to_string(".env").unwrap_or_default()
     };
-    for (k, v) in templates::parse_env_file(&file_content).iter() {
+    for (k, v) in templates::parse_env_file(&file_content)?.iter() {
       if !config.environment.contains_key(k) {
         config.environment.insert(k.to_string(), v.to_string());
       }
     }
     for task in config.tasks.values_mut() {
       let env = if let Some(file) = &task.env_file {
-        templates::parse_env_file(&fs::read_to_string(file)?)
+        templates::parse_env_file(&fs::read_to_string(file)?)?
       } else {
         Default::default()
       };

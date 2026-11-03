@@ -78,27 +78,22 @@ fn replace_environments<S: AsRef<str>>(message: S, env: &HashMap<String, String>
     })
 }
 
-pub fn parse_env_file<S: AsRef<str>>(content: S) -> HashMap<String, String> {
+pub fn parse_env_file<S: AsRef<str>>(content: S) -> anyhow::Result<HashMap<String, String>> {
   let mut env = HashMap::default();
   for mut entry in content.as_ref().split("\n").map(|line| line.splitn(2, "=")) {
-    if let Some(key) = entry.next()
-      && let Some(value) = entry.next()
+    if let Some(raw_key) = entry.next()
+      && let Some(raw_value) = entry.next()
+      && !raw_key.contains("#")
+      && let yaml = format!("{raw_key}: {raw_value}")
+      && let Some((key, value)) = serde_yaml::from_str::<HashMap<String, String>>(&yaml)?
+        .iter()
+        .next()
     {
-      let key = key.trim();
-      let value = value.trim().to_string();
-      let end = if value.len() > 1 { value.len() - 1 } else { 0 };
-      let value = if end > 0 && value.get(..1) == Some("'") && value.get(end..) == Some("'") {
-        value.get(1..(end)).unwrap_or("").to_string()
-      } else if end > 0 && value.get(..1) == Some("\"") && value.get(end..) == Some("\"") {
-        value.get(1..(end)).unwrap_or("").to_string()
-      } else {
-        value.to_string()
-      };
-      env.insert(key.to_string(), value);
+      env.insert(key.to_string(), value.to_string());
     }
   }
 
-  env
+  Ok(env)
 }
 
 #[cfg(test)]
@@ -220,7 +215,7 @@ mod test {
   }
 
   #[test]
-  fn parse_env_file() {
+  fn parse_env_file() -> anyhow::Result<()> {
     let content = r#"
 ENV_1=value
 ENV_2 = value with removed dangling spaces 
@@ -232,11 +227,13 @@ override=second value
 empty_1=
 empty_2=''
 empty_3=""
-single_quote='
-double_quote="
+# comment=should not be set
+ # comment2=should not be set
+comment3=comment3 content # with comment
+comment4#=test
 ignore
     "#;
-    let map = super::parse_env_file(content);
+    let map = super::parse_env_file(content)?;
     assert_eq!(map.get("ENV_1"), Some(&"value".into()));
     assert_eq!(
       map.get("ENV_2"),
@@ -252,8 +249,26 @@ ignore
     assert_eq!(map.get("empty_1"), Some(&"".into()));
     assert_eq!(map.get("empty_2"), Some(&"".into()));
     assert_eq!(map.get("empty_3"), Some(&"".into()));
-    assert_eq!(map.get("double_quote"), Some(&"\"".into()));
-    assert_eq!(map.get("single_quote"), Some(&"'".into()));
     assert_eq!(map.get("ignore"), None);
+    assert_eq!(map.get("# comment"), None);
+    assert_eq!(map.get("comment"), None);
+    assert_eq!(map.get(" comment"), None);
+    assert_eq!(map.get(" # comment2"), None);
+    assert_eq!(map.get("# comment2"), None);
+    assert_eq!(map.get(" comment2"), None);
+    assert_eq!(map.get("comment2"), None);
+    assert_eq!(map.get("comment3"), Some(&"comment3 content".into()));
+    assert_eq!(map.get("comment4"), None);
+    assert_eq!(map.get("comment4#"), None);
+    assert_eq!(map.get(""), None);
+    Ok(())
+  }
+
+  #[test]
+  fn parse_env_file_err() -> anyhow::Result<()> {
+    assert!(super::parse_env_file("single_quote='").is_err());
+    assert!(super::parse_env_file("double_quote=\"").is_err());
+    assert!(super::parse_env_file("=empty key").is_err());
+    Ok(())
   }
 }
