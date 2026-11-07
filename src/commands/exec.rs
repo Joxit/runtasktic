@@ -1,12 +1,11 @@
 use crate::config::Config;
 use crate::utils::logger;
 use crate::utils::traits::{Executable, WaitSchedule};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use chrono::Local;
 use clap::Parser;
 use cron::Schedule;
 use libc::{SIG_IGN, SIGHUP, fork, signal};
-use std::fs;
 use std::path::PathBuf;
 use std::process::exit;
 use tokio::runtime::Runtime;
@@ -15,7 +14,7 @@ use tokio::runtime::Runtime;
 pub struct Exec {
   /// Configuration path (YAML).
   /// Will use config file located `~/.runtasktic.yml` or `~/.runtasktic.yaml` by default.
-  /// If you want no config file execusion, use `--config -`
+  /// If you want no config file execution, use `--config -`
   #[arg(long = "config", short = 'c')]
   config: Option<PathBuf>,
   /// Run a single task from the configuration file.
@@ -88,9 +87,9 @@ impl Exec {
     let (mut config, path) = if Some(PathBuf::from("-")) == self.config {
       (Config::default(), format!("-"))
     } else if let Some(path) = &self.config {
-      self.config_path(path)?
-    } else if let Some(path) = self.default_config_path() {
-      self.config_path(&path)?
+      super::config_path(path)?
+    } else if let Some(path) = super::default_config_path() {
+      super::config_path(&path)?
     } else {
       (Config::default(), format!("<No Config File Path>"))
     };
@@ -127,26 +126,5 @@ impl Exec {
     }
 
     Ok(())
-  }
-
-  fn default_config_path(&self) -> Option<PathBuf> {
-    if let Ok(home) = std::env::var("HOME") {
-      vec![".runtasktic", ".runtasktic.yml", ".runtasktic.yaml"]
-        .iter()
-        .map(|path| PathBuf::from(&home).join(path))
-        .find(|path| path.as_path().exists())
-    } else {
-      None
-    }
-  }
-
-  fn config_path(&self, path: &PathBuf) -> Result<(Config, String)> {
-    let yaml = fs::read_to_string(&path)
-      .with_context(|| anyhow!("Can't read the config file {}", &path.display()))?;
-
-    let config = Config::from_str(yaml.as_str())
-      .with_context(|| anyhow!("Can't process the config file {}", &path.display()))?;
-
-    Ok((config, format!("{}", path.display())))
   }
 }

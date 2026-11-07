@@ -8,7 +8,7 @@ mod de;
 mod task;
 mod templates;
 
-#[derive(Debug, PartialEq, Clone, Default, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, Default, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Config {
   #[serde(default, deserialize_with = "deserialize_task")]
@@ -26,7 +26,7 @@ pub struct Config {
   pub env_file: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Clone, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Notification {
   pub slack: Option<Slack>,
@@ -40,7 +40,7 @@ pub struct Notification {
   pub messages: Messages,
 }
 
-#[derive(Debug, PartialEq, Clone, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Slack {
   #[serde(
@@ -62,7 +62,7 @@ pub struct Slack {
   pub when: Option<WhenNotify>,
 }
 
-#[derive(Debug, PartialEq, Clone, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Discord {
   #[serde(
@@ -78,14 +78,14 @@ pub struct Discord {
   pub when: Option<WhenNotify>,
 }
 
-#[derive(Debug, PartialEq, Clone, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Print {
   pub output: String,
   pub when: Option<WhenNotify>,
 }
 
-#[derive(Debug, PartialEq, Clone, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Mail {
   pub from: MailAddress,
@@ -96,7 +96,7 @@ pub struct Mail {
   pub when: Option<WhenNotify>,
 }
 
-#[derive(Debug, PartialEq, Clone, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case", untagged)]
 pub enum MailAddress {
   A(String),
@@ -107,7 +107,7 @@ pub enum MailAddress {
   V(Vec<MailAddress>),
 }
 
-#[derive(Debug, PartialEq, Clone, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct MailSMTP {
   #[serde(
@@ -131,7 +131,7 @@ pub struct MailSMTP {
   pub tls: bool,
 }
 
-#[derive(Debug, PartialEq, Clone, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum WhenNotify {
   Always,
@@ -141,14 +141,14 @@ pub enum WhenNotify {
   Fail,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, Copy, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum OnFailure {
   Continue,
   Exit,
 }
 
-#[derive(Debug, PartialEq, Clone, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Messages {
   pub task_end: String,

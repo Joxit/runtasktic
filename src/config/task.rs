@@ -1,7 +1,7 @@
 use super::OnFailure;
 use std::collections::HashMap;
 
-#[derive(Debug, PartialEq, Clone, serde::Deserialize, Default)]
+#[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub struct Task {
   #[serde(skip)]

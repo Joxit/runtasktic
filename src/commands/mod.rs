@@ -1,9 +1,10 @@
 use crate::config::{Config, WhenNotify};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 
 mod completion;
+mod config;
 mod dot;
 mod exec;
 mod run;
@@ -30,6 +31,9 @@ pub enum Command {
   /// Self update of the binary.
   #[command(name = "update")]
   Update(update::Update),
+  /// Parse, resolve and render configuration file.
+  #[command(name = "config")]
+  Config(config::Config),
 }
 
 impl Command {
@@ -40,6 +44,7 @@ impl Command {
       Command::Dot(executable) => executable.exec(),
       Command::Completion(executable) => executable.exec(),
       Command::Update(executable) => executable.exec(),
+      Command::Config(executable) => executable.exec(),
     }
   }
 }
@@ -134,6 +139,27 @@ impl NotificationArg {
       }
     }
   }
+}
+
+pub fn default_config_path() -> Option<PathBuf> {
+  if let Ok(home) = std::env::var("HOME") {
+    vec![".runtasktic", ".runtasktic.yml", ".runtasktic.yaml"]
+      .iter()
+      .map(|path| PathBuf::from(&home).join(path))
+      .find(|path| path.as_path().exists())
+  } else {
+    None
+  }
+}
+
+pub fn config_path(path: &PathBuf) -> Result<(Config, String)> {
+  let yaml = std::fs::read_to_string(&path)
+    .with_context(|| anyhow!("Can't read the config file {}", &path.display()))?;
+
+  let config = Config::from_str(yaml.as_str())
+    .with_context(|| anyhow!("Can't process the config file {}", &path.display()))?;
+
+  Ok((config, format!("{}", path.display())))
 }
 
 #[cfg(test)]
