@@ -1,7 +1,7 @@
 use crate::utils::logger;
 use anyhow::Result;
 use clap::Parser;
-use std::path::PathBuf;
+use std::{io::Write, path::PathBuf};
 
 #[derive(Parser, Debug)]
 pub struct Config {
@@ -11,6 +11,9 @@ pub struct Config {
   /// Print all tasks from configuration files.
   #[arg(long = "tasks", conflicts_with = "task")]
   tasks: bool,
+  /// Print all tasks from configuration files.
+  #[arg(long = "format", short = 'f', default_value = "yaml")]
+  format: Format,
   /// Configuration path (YAML).
   /// Will use config file located `~/.runtasktic.yml` or `~/.runtasktic.yaml` by default.
   #[arg()]
@@ -64,7 +67,27 @@ impl Config {
   }
 
   fn to_stdout<S: serde::Serialize>(&self, se: S) -> anyhow::Result<()> {
-    serde_yaml::to_writer(&std::io::stdout(), &se)?;
+    let mut writer = std::io::stdout();
+
+    match self.format {
+      Format::Yaml => serde_yaml::to_writer(&writer, &se)?,
+      Format::Json => {
+        serde_json::to_writer(&writer, &se)?;
+        writer.write(b"\n")?;
+      }
+      Format::JsonPretty => {
+        serde_json::to_writer_pretty(&writer, &se)?;
+        writer.write(b"\n")?;
+      }
+    }
+
     Ok(())
   }
+}
+
+#[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize, clap::ValueEnum)]
+enum Format {
+  Yaml,
+  Json,
+  JsonPretty,
 }
