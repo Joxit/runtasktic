@@ -22,4 +22,31 @@ environment:
   ENV_1: 'from env_1'
   ENV_2: 'from env_2'
   ENV_3: 'from env_3'
+  global_env: 'global_env value'
 env_file: 'tests/resources/env_file'
+
+notification:
+  slack:
+    url: '{env.global_env}'
+    channel: '{env.global_env}'
+    emoji: '{env.global_env}'
+    username: '{env.global_env}'
+  discord:
+    url: '{env.global_env}'
+    username: '{env.global_env}'
+  print:
+    output: '{env.global_env}'
+  email:
+    from:
+      name: '{env.global_env}'
+      address: '{env.global_env}'
+    to:
+      - name: '{env.global_env}'
+        address: '{env.global_env}'
+    subject: '{env.global_env}'
+    smtp:
+      hostname: '{env.global_env}'
+      port: 1587
+      username: '{env.global_env}'
+      secret: '{env.global_env}'
+      tls: false

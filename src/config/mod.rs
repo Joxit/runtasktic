@@ -198,6 +198,9 @@ impl Config {
         }
       }
     }
+    if let Some(notification) = &mut config.notification {
+      notification.update_environments(&config.environment);
+    }
     Ok(config)
   }
 
@@ -310,6 +313,46 @@ impl Notification {
       if let Err(e) = crate::notification::notification_email(&email, msg.as_str()).await {
         eprintln!("Can't use email notification: {}", e);
       }
+    }
+  }
+
+  fn update_environments(&mut self, env: &HashMap<String, String>) {
+    if let Some(print) = &mut self.print {
+      print.output = templates::replace(&print.output, env);
+    }
+
+    if let Some(slack) = &mut self.slack {
+      slack.channel = templates::replace(&slack.channel, env);
+      slack.url = templates::replace(&slack.url, env);
+      slack.emoji = slack
+        .emoji
+        .clone()
+        .map(|emoji| templates::replace(&emoji, env));
+      slack.username = slack
+        .username
+        .clone()
+        .map(|username| templates::replace(&username, env));
+    }
+
+    if let Some(discord) = &mut self.discord {
+      discord.url = templates::replace(&discord.url, env);
+      discord.username = discord
+        .username
+        .clone()
+        .map(|username| templates::replace(&username, env));
+    }
+
+    if let Some(email) = &mut self.mail {
+      email.from = email.from.with_environments(env);
+      email.to = email.to.with_environments(env);
+      email.subject = templates::replace(&email.subject, env);
+      email.smtp.hostname = templates::replace(&email.smtp.hostname, env);
+      email.smtp.secret = templates::replace(&email.smtp.secret, env);
+      email.smtp.username = email
+        .smtp
+        .username
+        .clone()
+        .map(|username| templates::replace(&username, env));
     };
   }
 }
@@ -449,6 +492,22 @@ impl MailAddress {
       Self::A(email) => email,
       Self::NA { name: _, address } => address,
       Self::V(addresses) => addresses.first().unwrap().email(),
+    }
+  }
+
+  fn with_environments(&self, env: &HashMap<String, String>) -> Self {
+    match self {
+      Self::A(email) => Self::A(templates::replace(&email, &env)),
+      Self::NA { name, address } => Self::NA {
+        name: name.clone().map(|name| templates::replace(&name, &env)),
+        address: templates::replace(&address, &env),
+      },
+      Self::V(addresses) => Self::V(
+        addresses
+          .iter()
+          .map(|addr| addr.with_environments(&env))
+          .collect(),
+      ),
     }
   }
 }
@@ -843,11 +902,57 @@ mod test {
   fn vs(vec: &[&str]) -> Vec<String> {
     vec.iter().map(|s| s.to_string()).collect()
   }
+
   #[test]
   fn environment() {
     let yaml = fs::read_to_string(ENVIRONMENT).unwrap();
     let config = Config::from_str(yaml.as_str()).unwrap();
     let tasks = config.tasks;
+    let global_env = format!("global_env value");
+
+    let expected_slack = Slack {
+      url: global_env.clone(),
+      channel: global_env.clone(),
+      username: Some(global_env.clone()),
+      emoji: Some(global_env.clone()),
+      when: None,
+    };
+    let expected_discord = Discord {
+      url: global_env.clone(),
+      username: Some(global_env.clone()),
+      when: None,
+    };
+    let expected_print = Print {
+      output: global_env.clone(),
+      when: None,
+    };
+    let expected_email = Mail {
+      from: MailAddress::NA {
+        name: Some(global_env.clone()),
+        address: global_env.clone(),
+      },
+      to: MailAddress::V(vec![MailAddress::NA {
+        name: Some(global_env.clone()),
+        address: global_env.clone(),
+      }]),
+      subject: global_env.clone(),
+      smtp: MailSMTP {
+        hostname: global_env.clone(),
+        port: 1587,
+        username: Some(global_env.clone()),
+        secret: global_env.clone(),
+        tls: false,
+      },
+      when: None,
+    };
+    let expected_notification = Notification {
+      slack: Some(expected_slack),
+      discord: Some(expected_discord),
+      print: Some(expected_print),
+      mail: Some(expected_email),
+      when: WhenNotify::End,
+      messages: Messages::default(),
+    };
 
     assert_eq!(
       tasks.get("precedence").unwrap().full_command(),
@@ -863,5 +968,6 @@ mod test {
       tasks.get("trim").unwrap().full_command(),
       format!("trim spaces")
     );
+    assert_eq!(config.notification, Some(expected_notification));
   }
 }
