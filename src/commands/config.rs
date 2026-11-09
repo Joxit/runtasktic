@@ -1,6 +1,7 @@
 use crate::utils::logger;
 use anyhow::Result;
 use clap::Parser;
+use std::collections::HashMap;
 use std::{io::Write, path::PathBuf};
 
 #[derive(Parser, Debug)]
@@ -11,6 +12,9 @@ pub struct Config {
   /// Print all tasks from configuration files.
   #[arg(long = "tasks", conflicts_with = "task")]
   tasks: bool,
+  /// Print also environments from configuration files.
+  #[arg(long = "environments")]
+  environments: bool,
   /// Print all tasks from configuration files.
   #[arg(long = "format", short = 'f', default_value = "yaml")]
   format: Format,
@@ -40,10 +44,17 @@ impl Config {
     for path in configs {
       info!("Reading configuration {}", path.display());
       let (mut config, _) = super::config_path(path)?;
-      config
-        .tasks
-        .iter_mut()
-        .for_each(|(_, task)| task.commands = vec![task.full_command()]);
+      config.tasks.iter_mut().for_each(|(_, task)| {
+        task.commands = vec![task.full_command()];
+        if !self.environments {
+          task.env_file = None;
+          task.environment = HashMap::new();
+        }
+      });
+      if !self.environments {
+        config.env_file = None;
+        config.environment = HashMap::new();
+      }
       if !self.task.is_empty() {
         for task in self
           .task

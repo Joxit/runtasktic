@@ -36,3 +36,4 @@ serde_yaml = "^0.9.34+deprecated"
 serde_json = "1.0"
 log = { version = "0.4.29", features = ["serde", "std"] }
 millisecond = "0.15.14"
+serde_with = { version = "3.24.0", features = ["json"] }

@@ -5,3 +5,5 @@ pub mod process;
 
 #[macro_use]
 extern crate anyhow;
+#[macro_use]
+extern crate serde_with;

@@ -8,10 +8,15 @@ mod de;
 mod task;
 mod templates;
 
+#[skip_serializing_none]
 #[derive(Debug, PartialEq, Clone, Default, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Config {
-  #[serde(default, deserialize_with = "deserialize_task")]
+  #[serde(
+    default,
+    deserialize_with = "deserialize_task",
+    skip_serializing_if = "HashMap::is_empty"
+  )]
   pub tasks: HashMap<String, Task>,
   #[serde(default = "default_concurrency")]
   pub concurrency: i64,
@@ -21,11 +26,12 @@ pub struct Config {
   pub stderr: Option<String>,
   #[serde(default)]
   pub on_failure: OnFailure,
-  #[serde(default)]
+  #[serde(default, skip_serializing_if = "HashMap::is_empty")]
   pub environment: HashMap<String, String>,
   pub env_file: Option<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Notification {
@@ -40,6 +46,7 @@ pub struct Notification {
   pub messages: Messages,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Slack {
@@ -62,6 +69,7 @@ pub struct Slack {
   pub when: Option<WhenNotify>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Discord {
@@ -78,6 +86,7 @@ pub struct Discord {
   pub when: Option<WhenNotify>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Print {
@@ -85,6 +94,7 @@ pub struct Print {
   pub when: Option<WhenNotify>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Mail {
@@ -96,6 +106,7 @@ pub struct Mail {
   pub when: Option<WhenNotify>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case", untagged)]
 pub enum MailAddress {
@@ -107,6 +118,7 @@ pub enum MailAddress {
   V(Vec<MailAddress>),
 }
 
+#[skip_serializing_none]
 #[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct MailSMTP {

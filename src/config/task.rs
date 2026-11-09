@@ -1,20 +1,21 @@
 use super::OnFailure;
 use std::collections::HashMap;
 
+#[skip_serializing_none]
 #[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub struct Task {
-  #[serde(skip)]
+  #[serde(default)]
   pub(super) id: String,
-  #[serde(default)]
+  #[serde(default, skip_serializing_if = "Vec::is_empty")]
   pub commands: Vec<String>,
-  #[serde(default)]
+  #[serde(default, skip_serializing_if = "Vec::is_empty")]
   pub depends_on: Vec<String>,
   #[serde(default)]
   pub on_failure: Option<OnFailure>,
   #[serde(default)]
   pub working_dir: Option<String>,
-  #[serde(default)]
+  #[serde(default, skip_serializing_if = "HashMap::is_empty")]
   pub environment: HashMap<String, String>,
   pub env_file: Option<String>,
   #[serde(skip)]
