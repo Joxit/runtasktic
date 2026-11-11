@@ -134,6 +134,25 @@ Options:
           Print help (see a summary with '-h')
 ```
 
+### Config: Check your configuration
+
+```
+Parse, resolve and render configuration file
+
+Usage: runtasktic config [OPTIONS] [CONFIGS]...
+
+Arguments:
+  [CONFIGS]...  Configuration path (YAML). Will use config file located `~/.runtasktic.yml` or `~/.runtasktic.yaml` by default
+
+Options:
+  -t, --task <TASK>      Print a list of tasks from configuration files
+      --tasks            Print all tasks from configuration files
+      --environments     Print also environments from configuration files
+  -f, --format <FORMAT>  Print all tasks from configuration files [default: yaml] [possible values: yaml, json, json-pretty]
+  -v, --verbose          Display debug messages on STDERR
+  -h, --help             Print help
+```
+
 ### Dot: Create a graph using graphviz of your configuration file
 
 ```
@@ -193,6 +212,9 @@ tasks:
       - sleep 0.5
       - echo End {task.id}
     on_failure: exit # `continue` or `exit` when the tasks ends with a non 0 exit code
+    environment: # Environment variable to override in commands with {env.*}, is overridden by host environments
+      ENV_1: 'from task_env_1'
+    env_file: 'tests/resources/env_task_file' # Environment file to override in commands with {env.*}, is overridden by `environment`
   b:
     commands:
       - echo Begin {task.id}
@@ -229,7 +251,7 @@ notification:
     subject: 'Runtasktik: task ended' # Default email's subject
     smtp:
       hostname: smtp.example.com # SMTP hostname
-      port: 587 # SMTP port, default 587 
+      port: 587 # SMTP port, default 587
       username: sender@example.com # SMTP username, default is Sender's email
       secret: secret-password # SMTP password
       tls: true # Use TLS connexion, default is true
@@ -240,12 +262,18 @@ working_dir: /custom/directory # Where is the workind directory, default is wher
 stdout: none # `none`, `/custom/path` where should I save standard logs
 stderr: /var/log/runtasktic.err # `none`, `/custom/path` where should I save error logs
 on_failure: continue # `continue` or `exit` default behaviour when a task fail, default is `continue`
+environment: # Environment variable to override in tasks and configuration with {env.*}, is overridden by task `env_file` environments
+  ENV_1: 'from env_1'
+  ENV_2: 'from env_2'
+  ENV_3: 'from env_3'
+env_file: 'tests/resources/env_file' # Environment variable to override in tasks and configuration with {env.*}, is overridden `environment`
 ```
 
 ### Override configuration
 
 You can override some of your configuration with environment variables. These variables start with `RUNTASKTIK_*`, all dots are replaced by underscores and everything is uppercase.
 Available ones are:
+
 - `RUNTASKTIK_NOTIFICATION_SLACK_URL`
 - `RUNTASKTIK_NOTIFICATION_SLACK_CHANNEL`
 - `RUNTASKTIK_NOTIFICATION_SLACK_USERNAME`
@@ -254,6 +282,8 @@ Available ones are:
 - `RUNTASKTIK_NOTIFICATION_EMAIL_SMTP_SECRET`
 - `RUNTASKTIK_NOTIFICATION_DISCORD_URL`
 - `RUNTASKTIK_NOTIFICATION_DISCORD_USERNAME`
+
+You can also set a custom environment variable with `{env.*}`.
 
 ### Available template: Notification & Commands
 
@@ -270,7 +300,7 @@ Here is the list of available templates you can use in your messages sended by t
 - `{resume.success}`: Number of tasks with success status code. Supported by `all_task_end`, `task_failed`.
 - `{resume.failures}`: Number of tasks with failure status code. Supported by `all_task_end`, `task_failed`.
 - `{hostname}`: Returns the host name. Supported globally (including `commands`).
-- `{env.*}`: Returns arbitrary host environment variables. Supported globally (including `commands`).
+- `{env.*}`: Returns arbitrary host environment variables. Supported globally (including `commands`, `notification.slack`, `notification.discord`, `notification.email`, `notification.print`).
 - `{date.utc.now}`: Get current UTC date time with format in ISO 8601 (e.g. `2017-08-30T11:37:00.000Z`). Supported globally (including `commands`).
 - `{date.utc.today}`: Get current UTC date with format in ISO 8601 (e.g. `2017-08-30`). Supported globally (including `commands`).
 - `{date.utc.time}`: Get current UTC time with format in ISO 8601 (e.g. `11:37:00.000Z`). Supported globally (including `commands`).
@@ -285,3 +315,7 @@ Here is the list of available templates you can use in your messages sended by t
 [Play with concurrency](https://github.com/Joxit/task-scheduler/blob/master/tests/resources/concurrency.yml)
 
 [Play with notification](https://github.com/Joxit/task-scheduler/blob/master/tests/resources/notification.yml)
+
+[Play with on_failure](https://github.com/Joxit/task-scheduler/blob/master/tests/resources/on_failure.yml)
+
+[Play with environment](https://github.com/Joxit/task-scheduler/blob/master/tests/resources/environment.yml)

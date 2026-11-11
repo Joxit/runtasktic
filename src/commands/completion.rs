@@ -6,7 +6,7 @@ use clap_complete::{Shell, generate};
 #[derive(Parser, Debug)]
 pub enum Completion {
   /// Generates a .bash completion file for the Bourne Again SHell (BASH).
-  /// Save the output in `/etc/bash_completion.d/runtasktic` or `~/.local/share/bash-completion/completions/runtasktic`
+  /// Save the output in `/etc/bash_completion.d/runtasktic` or `~/.local/share/bash-completion/completions/runtasktic` or set `. <($HOME/.cargo/bin/runtasktic completion bash)` in your ~/.bash_aliases
   #[command(name = "bash")]
   Bash,
   /// Generates a .fish completion file for the Friendly Interactive SHell (fish)
