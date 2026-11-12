@@ -45,7 +45,7 @@ impl Config {
       info!("Reading configuration {}", path.display());
       let (mut config, _) = super::config_path(path)?;
       config.tasks.iter_mut().for_each(|(_, task)| {
-        task.commands = vec![task.full_command()];
+        task.commands = task.commands();
         if !self.environments {
           task.env_file = None;
           task.environment = HashMap::new();

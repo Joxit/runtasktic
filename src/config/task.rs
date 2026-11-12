@@ -41,12 +41,17 @@ impl Task {
   pub fn id(&self) -> &String {
     &self.id
   }
-  pub fn full_command(&self) -> String {
-    let command = self
+  pub fn commands(&self) -> Vec<String> {
+    self
       .commands
-      .join(" && ")
-      .replace("{task.id}", &self.label());
-    super::templates::replace(command, &self.environment)
+      .iter()
+      .map(|cmd| {
+        super::templates::replace(cmd, &self.environment).replace("{task.id}", &self.label())
+      })
+      .collect()
+  }
+  pub fn full_command(&self) -> String {
+    self.commands().join(" && ")
   }
   pub fn short_command(&self) -> String {
     if self.commands.len() > 0 {
