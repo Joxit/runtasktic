@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::process::Process;
 use anyhow::{Context, Result};
-use std::fs::{File, OpenOptions};
+use std::fs::{File, OpenOptions, create_dir_all};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
@@ -83,9 +83,15 @@ fn process_stdio(
 }
 
 fn open_options<P: AsRef<Path>>(file: P) -> Result<File> {
+  if let Some(parent) = file.as_ref().parent()
+    && !parent.exists()
+  {
+    create_dir_all(parent)
+      .with_context(|| format!("stdio: Can't create directory {}", parent.display()))?;
+  }
   OpenOptions::new()
     .create(true)
     .append(true)
     .open(file.as_ref())
-    .with_context(|| format!("Can't open output file {}", file.as_ref().display()))
+    .with_context(|| format!("stdio: Can't open output file {}", file.as_ref().display()))
 }
