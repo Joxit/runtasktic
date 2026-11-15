@@ -10,8 +10,8 @@ const ENVIRONMENT_TEMPLATE: &str = "\\{env.(?P<key>[a-zA-Z0-9_]+)\\}";
 pub fn replace<S: AsRef<str>>(message: S, env: &HashMap<String, String>) -> String {
   let local = chrono::Local::now();
   let utc = local.to_utc();
-  let msg = replace_hostname(message);
-  let msg = replace_environments(msg, &env);
+  let msg = replace_environments(message, &env);
+  let msg = replace_hostname(msg);
   msg
     .replace("{date.utc.now}", &now(&utc, true))
     .replace("{date.utc.today}", &today(&utc))

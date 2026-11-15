@@ -201,6 +201,15 @@ impl Config {
     if let Some(notification) = &mut config.notification {
       notification.update_environments(&config.environment);
     }
+    if let Some(stdout) = config.stdout {
+      config.stdout = Some(templates::replace(stdout, &config.environment));
+    }
+    if let Some(stderr) = config.stderr {
+      config.stderr = Some(templates::replace(stderr, &config.environment));
+    }
+    if let Some(working_dir) = config.working_dir {
+      config.working_dir = Some(templates::replace(working_dir, &config.environment));
+    }
     Ok(config)
   }
 
