@@ -1,7 +1,8 @@
 use self::de::*;
 pub use self::task::Task;
 use crate::process::ExitStatus;
-use anyhow::Result;
+use anyhow::{Context, Result};
+use std::path::PathBuf;
 use std::{collections::HashMap, fs};
 
 mod de;
@@ -208,7 +209,12 @@ impl Config {
       config.stderr = Some(templates::replace(stderr, &config.environment));
     }
     if let Some(working_dir) = config.working_dir {
-      config.working_dir = Some(templates::replace(working_dir, &config.environment));
+      let working_dir = templates::replace(working_dir, &config.environment);
+      if !PathBuf::from(&working_dir).exists() {
+        fs::create_dir_all(&working_dir)
+          .with_context(|| format!("Can't create working directory {working_dir}"))?;
+      }
+      config.working_dir = Some(working_dir);
     }
     Ok(config)
   }
