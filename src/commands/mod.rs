@@ -1,5 +1,5 @@
 use crate::config::{Config, WhenNotify};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::Parser;
 use std::{path::PathBuf, str::FromStr};
 
@@ -153,11 +153,7 @@ pub fn default_config_path() -> Option<PathBuf> {
 }
 
 pub fn config_path(path: &PathBuf) -> Result<(Config, String)> {
-  let yaml = std::fs::read_to_string(&path)
-    .with_context(|| anyhow!("Can't read the config file {}", &path.display()))?;
-
-  let config = Config::from_str(yaml.as_str())
-    .with_context(|| anyhow!("Can't process the config file {}", &path.display()))?;
+  let config = Config::from_path(&path)?;
 
   Ok((config, format!("{}", path.display())))
 }

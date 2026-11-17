@@ -18,6 +18,15 @@ tasks:
   trim:
     commands:
       - '{env.trim}'
+  config_relative:
+    commands:
+      - '{config.filename} {config.dirname} {config.path}'
+  config_realpath:
+    commands:
+      - '{config.realpath}'
+  config_dirpath:
+    commands:
+      - '{config.dirpath}'
 environment:
   ENV_1: 'from env_1'
   ENV_2: 'from env_2'

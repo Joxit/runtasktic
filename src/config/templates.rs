@@ -12,13 +12,24 @@ pub fn replace<S: AsRef<str>>(message: S, env: &HashMap<String, String>) -> Stri
   let utc = local.to_utc();
   let msg = replace_environments(message, &env);
   let msg = replace_hostname(msg);
-  msg
+  let msg = msg
     .replace("{date.utc.now}", &now(&utc, true))
     .replace("{date.utc.today}", &today(&utc))
     .replace("{date.utc.time}", &time(&utc, true))
     .replace("{date.local.now}", &now(&local, false))
     .replace("{date.local.today}", &today(&local))
-    .replace("{date.local.time}", &time(&local, false))
+    .replace("{date.local.time}", &time(&local, false));
+  vec![
+    "{config.path}",
+    "{config.dirname}",
+    "{config.filename}",
+    "{config.realpath}",
+    "{config.dirpath}",
+  ]
+  .iter()
+  .fold(msg, |msg, key| {
+    msg.replace(key, &env.get(&key.to_string()).unwrap_or(&format!("{key}")))
+  })
 }
 
 fn now<Tz: TimeZone>(d: &DateTime<Tz>, is_utc: bool) -> String

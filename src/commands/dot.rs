@@ -3,7 +3,6 @@ use crate::fst::TaskFst;
 use crate::fst::dot::{dot_write_file, dot_write_png};
 use anyhow::{Context, Result};
 use clap::Parser;
-use std::fs;
 use std::io::Cursor;
 use std::path::PathBuf;
 
@@ -28,11 +27,7 @@ impl Dot {
   }
 
   fn run(&self) -> Result<()> {
-    let yaml = fs::read_to_string(self.config.as_path())
-      .with_context(|| anyhow!("Can't read the config file: {}", self.config.display()))?;
-
-    let mut config = Config::from_str(yaml.as_str())
-      .with_context(|| anyhow!("Can't read the config file {}", self.config.display()))?;
+    let mut config = Config::from_path(self.config.as_path())?;
 
     let mut graph = TaskFst::new();
     for task in config.tasks_values_mut() {

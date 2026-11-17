@@ -2,7 +2,8 @@ use self::de::*;
 pub use self::task::Task;
 use crate::process::ExitStatus;
 use anyhow::{Context, Result};
-use std::path::PathBuf;
+use std::ffi::OsStr;
+use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
 
 mod de;
@@ -170,8 +171,12 @@ pub struct Messages {
 }
 
 impl Config {
-  pub fn from_str(s: &str) -> Result<Config> {
-    let mut config: Config = serde_yaml::from_str(s)?;
+  pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self> {
+    let yaml = fs::read_to_string(&path)
+      .with_context(|| anyhow!("Can't read the config file {}", &path.as_ref().display()))?;
+
+    let mut config: Config = serde_yaml::from_str(&yaml)?;
+    config.add_config_env(path);
     let file_content = if let Some(file) = &config.env_file {
       fs::read_to_string(file)?
     } else {
@@ -211,6 +216,7 @@ impl Config {
     if let Some(working_dir) = config.working_dir {
       let working_dir = templates::replace(working_dir, &config.environment);
       if !PathBuf::from(&working_dir).exists() {
+        #[cfg(not(test))]
         fs::create_dir_all(&working_dir)
           .with_context(|| format!("Can't create working directory {working_dir}"))?;
       }
@@ -233,6 +239,34 @@ impl Config {
     } else {
       self.working_dir.clone()
     }
+  }
+
+  fn add_config_env<P: AsRef<Path>>(&mut self, p: P) {
+    let config_path = p.as_ref();
+    if !config_path.is_file() {
+      return;
+    }
+    let root = PathBuf::from("/");
+    let path = format!("{}", config_path.display());
+    let filename = os_str_to_string(&config_path.file_name());
+    let realpath = config_path.canonicalize().unwrap_or_default();
+    let parent = realpath.parent().unwrap_or(root.as_path());
+    let dirname = os_str_to_string(&parent.file_name());
+    self.environment.insert("{config.path}".to_string(), path);
+    self
+      .environment
+      .insert("{config.filename}".to_string(), filename);
+    self
+      .environment
+      .insert("{config.dirname}".to_string(), dirname);
+    self.environment.insert(
+      "{config.realpath}".to_string(),
+      format!("{}", realpath.display()),
+    );
+    self.environment.insert(
+      "{config.dirpath}".to_string(),
+      format!("{}", parent.display()),
+    );
   }
 }
 
@@ -527,10 +561,14 @@ impl MailAddress {
   }
 }
 
+fn os_str_to_string(os: &Option<&OsStr>) -> String {
+  format!("{}", os.unwrap_or_default().display())
+}
+
 #[cfg(test)]
 mod test {
   use super::*;
-  use std::fs;
+  use regex::Regex;
 
   const SAMPLE_YAML: &str = "tests/resources/sample.yml";
   const NOTIFICATION_YAML: &str = "tests/resources/notification.yml";
@@ -661,13 +699,16 @@ mod test {
 
   #[test]
   fn sample_yaml() {
-    let yaml = fs::read_to_string(SAMPLE_YAML).unwrap();
-    let config = Config::from_str(yaml.as_str()).unwrap();
+    let config = Config::from_path(SAMPLE_YAML).unwrap();
 
-    let a = Task::new("a".to_string(), vec![echo("a"), sleep("0.5")], vec![], None);
-    let b = Task::new("b", vec![echo("b"), sleep("0.5")], vs(&["a"]), None);
-    let c = Task::new("c", vec![echo("c")], vs(&["a"]), None);
-    let d = Task::new("d", vec![echo("d")], vs(&["b", "c"]), None);
+    let mut a = Task::new("a".to_string(), vec![echo("a"), sleep("0.5")], vec![], None);
+    a.environment = config.environment.clone();
+    let mut b = Task::new("b", vec![echo("b"), sleep("0.5")], vs(&["a"]), None);
+    b.environment = config.environment.clone();
+    let mut c = Task::new("c", vec![echo("c")], vs(&["a"]), None);
+    c.environment = config.environment.clone();
+    let mut d = Task::new("d", vec![echo("d")], vs(&["b", "c"]), None);
+    d.environment = config.environment.clone();
 
     assert_eq!(config.notification, None);
     assert_eq!(config.concurrency, -1);
@@ -683,10 +724,9 @@ mod test {
 
   #[test]
   fn concurrency_yaml() {
-    let yaml = fs::read_to_string(CONCURRENCY_YAML).unwrap();
-    let config = Config::from_str(yaml.as_str()).unwrap();
+    let config = Config::from_path(CONCURRENCY_YAML).unwrap();
 
-    let a1 = Task::new(
+    let mut a1 = Task::new(
       "a1",
       vec![
         echo("Begin {task.id} at {date.utc.now}"),
@@ -696,7 +736,8 @@ mod test {
       vec![],
       None,
     );
-    let a2 = Task::new(
+    a1.environment = config.environment.clone();
+    let mut a2 = Task::new(
       "a2",
       vec![
         echo("Begin {task.id} at {date.utc.today}"),
@@ -706,7 +747,8 @@ mod test {
       vec![],
       None,
     );
-    let b = Task::new(
+    a2.environment = config.environment.clone();
+    let mut b = Task::new(
       "b",
       vec![
         echo("Begin {task.id} at {date.utc.time}"),
@@ -716,7 +758,8 @@ mod test {
       vs(&["a1", "a2"]),
       None,
     );
-    let c = Task::new(
+    b.environment = config.environment.clone();
+    let mut c = Task::new(
       "c",
       vec![
         echo("Begin {task.id} at {date.local.now}"),
@@ -726,7 +769,8 @@ mod test {
       vs(&["a1"]),
       None,
     );
-    let d = Task::new(
+    c.environment = config.environment.clone();
+    let mut d = Task::new(
       "d",
       vec![
         echo("Begin {task.id} at {date.local.today}"),
@@ -736,7 +780,8 @@ mod test {
       vs(&["a1"]),
       None,
     );
-    let e = Task::new(
+    d.environment = config.environment.clone();
+    let mut e = Task::new(
       "e",
       vec![
         echo("Begin {task.id} at {date.local.time}"),
@@ -746,7 +791,8 @@ mod test {
       vs(&["b", "c", "d"]),
       None,
     );
-    let f = Task::new(
+    e.environment = config.environment.clone();
+    let mut f = Task::new(
       "f",
       vec![
         echo("Begin {task.id} on {hostname}"),
@@ -756,6 +802,7 @@ mod test {
       vs(&["c"]),
       None,
     );
+    f.environment = config.environment.clone();
 
     assert_eq!(config.notification, None);
     assert_eq!(config.concurrency, 2);
@@ -771,39 +818,43 @@ mod test {
 
   #[test]
   fn notification_yaml() {
-    let yaml = fs::read_to_string(NOTIFICATION_YAML).unwrap();
-    let config = Config::from_str(yaml.as_str()).unwrap();
+    let config = Config::from_path(NOTIFICATION_YAML).unwrap();
 
-    let a = Task::new(
+    let mut a = Task::new(
       "a",
       vec![echo("Begin a"), sleep("0.5"), echo("End a")],
       vec![],
       None,
     );
-    let b = Task::new(
+    a.environment = config.environment.clone();
+    let mut b = Task::new(
       "b",
       vec![echo("Begin b"), sleep("0.5"), echo("End b")],
       vs(&["a"]),
       None,
     );
-    let c = Task::new(
+    b.environment = config.environment.clone();
+    let mut c = Task::new(
       "c",
       vec![echo("Begin c"), sleep("1"), echo("End c")],
       vs(&["a"]),
       None,
     );
-    let d = Task::new(
+    c.environment = config.environment.clone();
+    let mut d = Task::new(
       "d",
       vec![echo("Begin d"), sleep("0.5"), echo("End d")],
       vs(&["a"]),
       None,
     );
-    let e = Task::new(
+    d.environment = config.environment.clone();
+    let mut e = Task::new(
       "e",
       vec![echo("Begin e"), sleep("0.5"), echo("End e")],
       vs(&["b", "c", "d"]),
       None,
     );
+    e.environment = config.environment.clone();
 
     let slack = Slack {
       url: "https://hooks.slack.com/services/XXXXX/XXXXX/XXXXX".to_string(),
@@ -861,39 +912,43 @@ mod test {
 
   #[test]
   fn on_failure_yaml() {
-    let yaml = fs::read_to_string(ON_FAILURE_YAML).unwrap();
-    let config = Config::from_str(yaml.as_str()).unwrap();
+    let config = Config::from_path(ON_FAILURE_YAML).unwrap();
 
-    let a = Task::new(
+    let mut a = Task::new(
       "a",
       vec![echo("Begin a"), format!("unknown-cmd"), echo("End a")],
       vec![],
       Some(OnFailure::Continue),
     );
-    let b = Task::new(
+    a.environment = config.environment.clone();
+    let mut b = Task::new(
       "b",
       vec![echo("Begin b"), format!("unknown-cmd"), echo("End b")],
       vs(&["a"]),
       Some(OnFailure::Exit),
     );
-    let c = Task::new(
+    b.environment = config.environment.clone();
+    let mut c = Task::new(
       "c",
       vec![echo("Begin c"), sleep("1"), echo("End c")],
       vs(&["a"]),
       None,
     );
-    let d = Task::new(
+    c.environment = config.environment.clone();
+    let mut d = Task::new(
       "d",
       vec![echo("Begin d"), sleep("0.5"), echo("End d")],
       vs(&["a"]),
       None,
     );
-    let e = Task::new(
+    d.environment = config.environment.clone();
+    let mut e = Task::new(
       "e",
       vec![echo("Begin e"), sleep("0.5"), echo("End e")],
       vs(&["b", "c", "d"]),
       None,
     );
+    e.environment = config.environment.clone();
 
     assert_eq!(config.on_failure, OnFailure::Continue);
     assert_eq!(config.notification, None);
@@ -920,8 +975,7 @@ mod test {
 
   #[test]
   fn environment() {
-    let yaml = fs::read_to_string(ENVIRONMENT).unwrap();
-    let config = Config::from_str(yaml.as_str()).unwrap();
+    let config = Config::from_path(ENVIRONMENT).unwrap();
     let tasks = config.tasks;
     let global_env = format!("global_env value");
 
@@ -982,6 +1036,20 @@ mod test {
     assert_eq!(
       tasks.get("trim").unwrap().full_command(),
       format!("trim spaces")
+    );
+    assert_eq!(
+      tasks.get("config_relative").unwrap().full_command(),
+      format!("environment.yml resources tests/resources/environment.yml")
+    );
+    assert!(
+      Regex::new(&format!("^/.*/{ENVIRONMENT}$"))
+        .unwrap()
+        .is_match(&tasks.get("config_realpath").unwrap().full_command())
+    );
+    assert!(
+      Regex::new(&format!("^/.*/resources$"))
+        .unwrap()
+        .is_match(&tasks.get("config_dirpath").unwrap().full_command())
     );
     assert_eq!(config.notification, Some(expected_notification));
   }

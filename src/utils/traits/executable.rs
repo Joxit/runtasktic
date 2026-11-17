@@ -1,7 +1,9 @@
 use crate::config::Config;
 use crate::process::Process;
 use anyhow::{Context, Result};
-use std::fs::{File, OpenOptions, create_dir_all};
+#[cfg(not(test))]
+use std::fs::create_dir_all;
+use std::fs::{File, OpenOptions};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
@@ -86,6 +88,7 @@ fn open_options<P: AsRef<Path>>(file: P) -> Result<File> {
   if let Some(parent) = file.as_ref().parent()
     && !parent.exists()
   {
+    #[cfg(not(test))]
     create_dir_all(parent)
       .with_context(|| format!("stdio: Can't create directory {}", parent.display()))?;
   }

@@ -85,10 +85,8 @@ impl Run {
 
   fn run(&self, config_path: &Path, starts: &Vec<String>) -> Result<()> {
     let rt = Runtime::new()?;
-    let yaml = fs::read_to_string(config_path)
-      .with_context(|| format!("Can't read the config file {}", config_path.display()))?;
 
-    let mut config = Config::from_str(yaml.as_str())
+    let mut config = Config::from_path(&config_path)
       .with_context(|| format!("Can't process the config file {}", config_path.display()))?;
 
     if config.tasks().is_empty() {
