@@ -84,7 +84,7 @@ fn process_stdio(
   Ok(res)
 }
 
-fn open_options<P: AsRef<Path>>(file: P) -> Result<File> {
+pub fn open_options<P: AsRef<Path>>(file: P) -> Result<File> {
   if let Some(parent) = file.as_ref().parent()
     && !parent.exists()
   {

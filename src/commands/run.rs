@@ -1,6 +1,7 @@
 use crate::config::{Config, OnFailure};
 use crate::fst::TaskFst;
 use crate::process::Process;
+use crate::utils::eta::Eta;
 use crate::utils::logger;
 use crate::utils::traits::{Executable, WaitSchedule};
 use anyhow::{Context, Result};
@@ -37,6 +38,9 @@ pub struct Run {
   /// Notification rule to apply `all`, `none`, `<notification provider>`, `<when>` or `<notification provider>:<when>`. Can be repeated or join with comma `,`
   #[arg(long = "notification", value_delimiter = ',')]
   notification: Vec<super::NotificationArg>,
+  /// Show progress with the estimated number of seconds before finishing.
+  #[arg(long = "eta")]
+  eta: bool,
   /// Display debug messages on STDERR
   #[arg(long = "verbose", short = 'v')]
   verbose: bool,
@@ -95,6 +99,13 @@ impl Run {
         config_path.display()
       );
     }
+
+    let mut eta = Eta::new(
+      self.eta,
+      self.background,
+      config.stderr.clone(),
+      config.tasks.len() - starts.len(),
+    )?;
 
     for notif_arg in &self.notification {
       notif_arg.config_mut(&mut config);
@@ -194,6 +205,7 @@ impl Run {
               if is_failure && on_failure.unwrap_or(config.on_failure) == OnFailure::Exit {
                 ask_for_exit = true;
               }
+              eta.finished_task();
             }
           }
         }
@@ -204,6 +216,7 @@ impl Run {
           std::thread::sleep(std::time::Duration::from_millis(100));
         }
       }
+      eta.tick();
     }
 
     for join in joins.into_iter() {
@@ -221,6 +234,7 @@ impl Run {
 
     let elapsed = (Local::now() - start).num_milliseconds() as f64 / 1000f64;
     debug!("All task ended, {exit_success} success and {exit_failure} failures in {elapsed}s",);
+    eta.end();
 
     Ok(())
   }
