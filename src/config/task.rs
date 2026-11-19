@@ -1,4 +1,5 @@
 use super::OnFailure;
+use super::se::*;
 use std::collections::HashMap;
 
 #[skip_serializing_none]
@@ -15,7 +16,11 @@ pub struct Task {
   pub on_failure: Option<OnFailure>,
   #[serde(default)]
   pub working_dir: Option<String>,
-  #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+  #[serde(
+    default,
+    skip_serializing_if = "is_env_empty",
+    serialize_with = "serialize_env"
+  )]
   pub environment: HashMap<String, String>,
   pub env_file: Option<String>,
   #[serde(skip)]

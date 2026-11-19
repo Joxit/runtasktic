@@ -1,4 +1,5 @@
 use self::de::*;
+use self::se::*;
 pub use self::task::Task;
 use crate::process::ExitStatus;
 use anyhow::{Context, Result};
@@ -7,6 +8,7 @@ use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
 
 mod de;
+mod se;
 mod task;
 mod templates;
 
@@ -28,7 +30,11 @@ pub struct Config {
   pub stderr: Option<String>,
   #[serde(default)]
   pub on_failure: OnFailure,
-  #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+  #[serde(
+    default,
+    skip_serializing_if = "is_env_empty",
+    serialize_with = "serialize_env"
+  )]
   pub environment: HashMap<String, String>,
   pub env_file: Option<String>,
 }
@@ -155,7 +161,7 @@ pub enum WhenNotify {
   Fail,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, PartialEq, Clone, Copy, serde::Deserialize, serde::Serialize, clap::ValueEnum)]
 #[serde(rename_all = "kebab-case")]
 pub enum OnFailure {
   Continue,

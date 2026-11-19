@@ -7,6 +7,7 @@ mod completion;
 mod config;
 mod dot;
 mod exec;
+mod generate;
 mod run;
 mod update;
 
@@ -34,6 +35,9 @@ pub enum Command {
   /// Parse, resolve and render configuration file.
   #[command(name = "config")]
   Config(config::Config),
+  /// Generate config file from custom inputs.
+  #[command(name = "generate")]
+  Generate(generate::Generate),
 }
 
 impl Command {
@@ -45,6 +49,7 @@ impl Command {
       Command::Completion(executable) => executable.exec(),
       Command::Update(executable) => executable.exec(),
       Command::Config(executable) => executable.exec(),
+      Command::Generate(executable) => executable.exec(),
     }
   }
 }

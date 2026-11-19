@@ -15,6 +15,8 @@ extern crate log;
 extern crate anyhow;
 #[macro_use]
 extern crate serde_with;
+#[macro_use]
+extern crate lazy_static;
 
 #[derive(Parser, Debug)]
 #[command(name = "runtasktic", author, version, about)]
