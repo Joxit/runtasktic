@@ -36,6 +36,8 @@ pub enum Command {
   #[command(name = "config")]
   Config(config::Config),
   /// Generate config file from custom inputs.
+  ///
+  /// Takes an input file (stdin) and will process all lines to generate a runtasktic configuration.
   #[command(name = "generate")]
   Generate(generate::Generate),
 }
