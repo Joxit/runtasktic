@@ -1,3 +1,4 @@
+use crate::config::Task;
 use crate::utils::logger;
 use anyhow::Result;
 use clap::Parser;
@@ -63,11 +64,11 @@ impl Config {
           .filter(|task| task.is_some())
           .map(|task| task.unwrap())
         {
-          self.to_stdout(&task)?;
+          self.to_stdout(&Self::json_task(&task)?)?;
         }
       } else if self.tasks {
         for (_, task) in config.tasks.iter() {
-          self.to_stdout(&task)?;
+          self.to_stdout(&Self::json_task(&task)?)?;
         }
       } else {
         self.to_stdout(&config)?;
@@ -75,6 +76,16 @@ impl Config {
     }
 
     Ok(())
+  }
+
+  fn json_task(task: &Task) -> anyhow::Result<serde_json::Value> {
+    let mut json = serde_json::to_value(&task)?;
+    let obj = json.as_object_mut().unwrap();
+    obj.insert(
+      "id".to_string(),
+      serde_json::Value::String(task.id().clone()),
+    );
+    Ok(json)
   }
 
   fn to_stdout<S: serde::Serialize>(&self, se: S) -> anyhow::Result<()> {

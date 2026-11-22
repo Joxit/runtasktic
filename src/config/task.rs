@@ -6,7 +6,7 @@ use std::collections::HashMap;
 #[derive(Debug, PartialEq, Clone, serde::Deserialize, serde::Serialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub struct Task {
-  #[serde(default)]
+  #[serde(skip)]
   pub(super) id: String,
   #[serde(default, skip_serializing_if = "Vec::is_empty")]
   pub commands: Vec<String>,
