@@ -9,6 +9,7 @@ use chrono::Local;
 use clap::Parser;
 use cron::Schedule;
 use libc::{SIG_IGN, SIGHUP, fork, signal};
+use std::collections::HashSet;
 use std::fs;
 use std::future::IntoFuture;
 use std::path::{Path, PathBuf};
@@ -19,16 +20,24 @@ pub struct Run {
   /// Configurations path (YAML)
   #[arg()]
   config: Vec<PathBuf>,
-  /// Override the starting task if the job had already been started before.
+  /// Override the starting task to focus on specific jobs we want to process.
   /// When using many configuration files, start states must be in the first configuration file.
   /// Can be many task ids with comma separated values.
   #[arg(long = "start", short = 's', number_of_values = 1)]
   starts: Vec<String>,
-  /// File with ids overriding the starting task if the job had already been started before.
+  /// File with ids overriding the starting task to focus on specific jobs we want to process.
   /// When using many configuration files, start states must be in the first configuration file.
   /// The file must be one id per line.
   #[arg(long = "start-file", number_of_values = 1)]
   starts_file: Vec<String>,
+  /// Set to done listed tasks if the job had already been started before.
+  /// Can be many task ids with comma separated values.
+  #[arg(long = "done", number_of_values = 1)]
+  done: Vec<String>,
+  /// File with ids overriding the done tasks if the job had already been started before.
+  /// The file must be one id per line.
+  #[arg(long = "done-file", number_of_values = 1)]
+  done_file: Vec<String>,
   /// Run the task in background
   #[arg(long = "background", short = 'b')]
   background: bool,
@@ -73,13 +82,14 @@ impl Run {
     }
 
     let starts = self.starts()?;
+    let done = self.done()?;
 
     loop {
       self.cron.wait(timezone);
 
       for (i, config) in self.config.iter().enumerate() {
         let starts = if i == 0 { &starts } else { &vec![] };
-        self.run(&config.as_path(), starts)?;
+        self.run(&config.as_path(), starts, &done)?;
       }
       if self.cron.is_none() {
         return Ok(());
@@ -87,7 +97,7 @@ impl Run {
     }
   }
 
-  fn run(&self, config_path: &Path, starts: &Vec<String>) -> Result<()> {
+  fn run(&self, config_path: &Path, starts: &Vec<String>, done: &HashSet<String>) -> Result<()> {
     let rt = Runtime::new()?;
 
     let mut config = Config::from_path(&config_path)
@@ -162,9 +172,14 @@ impl Run {
         let task_fst = graph_iter.next().unwrap();
         let label = task_fst.label().to_string();
         let task = config.tasks().get(&label).unwrap();
-        debug!("Executing task {label}");
-        let process = task.exec(&config, self.background)?;
-        processes[task_fst.id()] = Some(process);
+        if done.contains(task_fst.label()) {
+          debug!("Task {label} already marked as done");
+          graph_iter.mark_done(task_fst.id());
+        } else {
+          debug!("Executing task {label}");
+          let process = task.exec(&config, self.background)?;
+          processes[task_fst.id()] = Some(process);
+        }
       } else if graph_iter.is_done() {
         break;
       } else {
@@ -251,5 +266,19 @@ impl Run {
       );
     }
     Ok(starts.concat())
+  }
+
+  fn done(&self) -> anyhow::Result<HashSet<String>> {
+    let mut done = vec![self.done.clone()];
+    for file in &self.done_file {
+      done.push(
+        fs::read_to_string(file)?
+          .split("\n")
+          .filter(|s| !s.is_empty())
+          .map(|s| s.to_string())
+          .collect(),
+      );
+    }
+    Ok(HashSet::from_iter(done.concat().into_iter()))
   }
 }

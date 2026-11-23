@@ -80,20 +80,22 @@ impl Eta {
   }
 
   pub fn end(&mut self) {
-    let elapsed = (Utc::now() - self.start).num_milliseconds() as u64;
-    let pretty_elapsed = Eta::pretty_millis(elapsed);
-    let pretty_avg = Eta::pretty_millis(elapsed / self.tasks as u64);
-    let msg = format!(
-      "{0} ETA: 0s / Elapsed: {pretty_elapsed} / AVG: {pretty_avg} / Done: {1}/{1}",
-      Local::now().format("%Y-%m-%dT%H:%M:%S.%3f"),
-      self.tasks
-    );
-    let res = match &mut self.output {
-      Output::File(f) => writeln!(f, "{msg}"),
-      Output::Stderr(stderr) => writeln!(stderr, "{msg}"),
-    };
-    if let Err(err) = res {
-      error!("Could not write to output {err}");
+    if self.enabled {
+      let elapsed = (Utc::now() - self.start).num_milliseconds() as u64;
+      let pretty_elapsed = Eta::pretty_millis(elapsed);
+      let pretty_avg = Eta::pretty_millis(elapsed / self.tasks as u64);
+      let msg = format!(
+        "{0} ETA: 0s / Elapsed: {pretty_elapsed} / AVG: {pretty_avg} / Done: {1}/{1}",
+        Local::now().format("%Y-%m-%dT%H:%M:%S.%3f"),
+        self.tasks
+      );
+      let res = match &mut self.output {
+        Output::File(f) => writeln!(f, "{msg}"),
+        Output::Stderr(stderr) => writeln!(stderr, "{msg}"),
+      };
+      if let Err(err) = res {
+        error!("Could not write to output {err}");
+      }
     }
   }
 }
