@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::{fs::File, io, io::IsTerminal, path::PathBuf};
 
 lazy_static! {
-  static ref REPLACE_TOKEN_REGEX: regex::Regex = regex::Regex::new("\\{([0-9]+)\\}").unwrap();
+  static ref REPLACE_TOKEN_REGEX: regex::Regex = regex::Regex::new(r"\{([0-9]+)}").unwrap();
 }
 
 #[derive(Parser, Debug)]
@@ -36,6 +36,12 @@ pub struct Generate {
   command: Vec<String>,
 }
 
+#[derive(Debug, Clone)]
+pub struct Tokenizer {
+  token: String,
+  indexes: Vec<usize>,
+}
+
 impl Generate {
   pub fn exec(&self) -> Result<()> {
     let mut config = if let Some(path) = &self.base {
@@ -53,6 +59,9 @@ impl Generate {
       .clone()
       .map(|id| Substitute::new(&id).ok())
       .flatten();
+    let cmd_tokenizer = Tokenizer::new(self.command.join(" "));
+    let id_tokenizer = self.id.clone().map(|id| Tokenizer::new(id));
+
     let mut idx = 0;
     loop {
       if std::io::stdin().is_terminal() {
@@ -62,15 +71,24 @@ impl Generate {
       match std::io::stdin().read_line(&mut buffer) {
         Ok(0) => break,
         Ok(_) => {
-          let id = self.id(&buffer, &substitute, idx);
-          let cmd: Vec<String> = self
-            .command
-            .iter()
-            .map(|s| Self::replace_token(s, &buffer))
-            .collect();
+          let id = if let Some(substitute) = &substitute
+            && let token = substitute.replace(&buffer)
+            && !token.is_empty()
+          {
+            token
+          } else if let Some(tokenizer) = &id_tokenizer
+            && let token = tokenizer.exec(&buffer)
+            && !token.is_empty()
+          {
+            token
+          } else {
+            idx.to_string()
+          };
+
+          let cmd: String = cmd_tokenizer.exec(&buffer);
           config
             .tasks
-            .insert(id.clone(), Task::new(id, vec![cmd.join(" ")], vec![], None));
+            .insert(id.clone(), Task::new(id, vec![cmd], vec![], None));
           idx = idx + 1;
         }
         Err(_) => break,
@@ -84,36 +102,67 @@ impl Generate {
     }
     Ok(())
   }
+}
 
-  fn replace_token(token: &String, input: &String) -> String {
-    if *token == "{}".to_string() {
-      input.trim()
-    } else if let Some(num) = REPLACE_TOKEN_REGEX.find(input) {
-      let nth = input
-        .split(" ")
-        .nth(num.as_str().parse::<usize>().unwrap().max(1) - 1);
-      nth.unwrap_or_default()
-    } else {
-      token
+impl Tokenizer {
+  fn new<S: AsRef<str>>(token: S) -> Self {
+    Self {
+      token: token.as_ref().to_string(),
+      indexes: REPLACE_TOKEN_REGEX
+        .captures_iter(token.as_ref())
+        .map(|c| c.get(1).unwrap().as_str().parse::<usize>().unwrap())
+        .collect(),
     }
-    .to_string()
   }
 
-  fn id(&self, input: &String, substitute: &Option<Substitute>, idx: i32) -> String {
-    if let Some(substitute) = substitute
-      && let token = substitute.replace(&input)
-      && !token.is_empty()
-    {
-      token
-    } else if let Some(id) = &self.id
-      && let token = Self::replace_token(&id, input)
-      && !token.is_empty()
-    {
-      token
-    } else {
-      idx.to_string()
-    }
-    .trim()
-    .to_string()
+  fn exec<S: AsRef<str>>(&self, input: S) -> String {
+    let input = input.as_ref().trim();
+    let token = self.token.replace("{}", input);
+    let split: Vec<&str> = input.split(" ").collect();
+    self
+      .indexes
+      .iter()
+      .fold(token, |token, item| {
+        token.replace(
+          &format!("{{{item}}}"),
+          split.get(*item.max(&1) - 1).unwrap_or(&""),
+        )
+      })
+      .to_string()
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[test]
+  fn replace_token_default() {
+    assert_eq!(Tokenizer::new("{}").exec("input"), "input");
+    assert_eq!(Tokenizer::new("echo {}").exec("input"), "echo input");
+    assert_eq!(
+      Tokenizer::new("echo '{} {}'").exec("input"),
+      "echo 'input input'"
+    );
+  }
+
+  #[test]
+  fn replace_token_idx() {
+    assert_eq!(
+      Tokenizer::new("{} {0} {1} {2}").exec("input"),
+      "input input input "
+    );
+    assert_eq!(
+      Tokenizer::new("echo {} {0} {1} {2}").exec("input"),
+      "echo input input input "
+    );
+    assert_eq!(
+      Tokenizer::new("echo '{} {0} {1} {2}'").exec("input"),
+      "echo 'input input input '"
+    );
+    assert_eq!(
+      Tokenizer::new("echo '{} {0} {1} {2} {3}'").exec("input bar"),
+      "echo 'input bar input input bar '"
+    );
   }
 }

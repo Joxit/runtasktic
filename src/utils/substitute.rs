@@ -1,6 +1,6 @@
 use regex::{Regex, RegexBuilder};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Substitute {
   regex: Regex,
   substitution: String,
