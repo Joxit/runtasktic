@@ -18,20 +18,11 @@ pub enum Command {
   /// Set the notification, messages, output files, concurency, working directory and many more options in your configuration.
   #[command(name = "run")]
   Run(run::Run),
-  /// Export the configuration to a graph (needs graphviz/dot).
-  #[command(name = "dot")]
-  Dot(dot::Dot),
   /// Execute a single command with notification in background or foreground.
   ///
   /// Inherit the notification from a configuration file and set your default one in your home: `~/.runtasktic.yml` or `~/.runtasktic.yaml`.
   #[command(name = "exec")]
   Exec(exec::Exec),
-  /// Generate completion script for your shell.
-  #[command(name = "completion", subcommand)]
-  Completion(completion::Completion),
-  /// Self update of the binary.
-  #[command(name = "update")]
-  Update(update::Update),
   /// Parse, resolve and render configuration file.
   #[command(name = "config")]
   Config(config::Config),
@@ -40,6 +31,15 @@ pub enum Command {
   /// Takes an input file (stdin) and will process all lines to generate a runtasktic configuration.
   #[command(name = "generate")]
   Generate(generate::Generate),
+  /// Export the configuration to a graph (needs graphviz/dot).
+  #[command(name = "dot")]
+  Dot(dot::Dot),
+  /// Generate completion script for your shell.
+  #[command(name = "completion", subcommand)]
+  Completion(completion::Completion),
+  /// Self update of the binary.
+  #[command(name = "update")]
+  Update(update::Update),
 }
 
 impl Command {

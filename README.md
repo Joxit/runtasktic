@@ -48,8 +48,10 @@ Usage: runtasktic <COMMAND>
 
 Commands:
   run         Run all tasks from your configuration in background or foreground
-  dot         Export the configuration to a graph (needs graphviz/dot)
   exec        Execute a single command with notification in background or foreground
+  config      Parse, resolve and render configuration file
+  generate    Generate config file from custom inputs
+  dot         Export the configuration to a graph (needs graphviz/dot)
   completion  Generate completion script for your shell
   update      Self update of the binary
   help        Print this message or the help of the given subcommand(s)
@@ -74,10 +76,16 @@ Arguments:
 
 Options:
   -s, --start <STARTS>
-          Override the starting task if the job had already been started before. When using many configuration files, start states must be in the first configuration file. Can be many task ids with comma separated values
+          Override the starting task to focus on specific jobs we want to process. When using many configuration files, start states must be in the first configuration file. Can be many task ids with comma separated values
 
       --start-file <STARTS_FILE>
-          File with ids overriding the starting task if the job had already been started before. When using many configuration files, start states must be in the first configuration file. The file must be one id per line
+          File with ids overriding the starting task to focus on specific jobs we want to process. When using many configuration files, start states must be in the first configuration file. The file must be one id per line
+
+      --done <DONE>
+          Set to done listed tasks if the job had already been started before. Can be many task ids with comma separated values
+
+      --done-file <DONE_FILE>
+          File with ids overriding the done tasks if the job had already been started before. The file must be one id per line
 
   -b, --background
           Run the task in background
@@ -87,6 +95,9 @@ Options:
 
       --notification <NOTIFICATION>
           Notification rule to apply `all`, `none`, `<notification provider>`, `<when>` or `<notification provider>:<when>`. Can be repeated or join with comma `,`
+
+      --eta
+          Show progress with the estimated number of seconds before finishing
 
   -v, --verbose
           Display debug messages on STDERR
@@ -110,7 +121,7 @@ Arguments:
 
 Options:
   -c, --config <CONFIG>
-          Configuration path (YAML). Will use config file located `~/.runtasktic.yml` or `~/.runtasktic.yaml` by default. If you want no config file execusion, use `--config -`
+          Configuration path (YAML). Will use config file located `~/.runtasktic.yml` or `~/.runtasktic.yaml` by default. If you want no config file execution, use `--config -`
 
   -t, --task <TASK>
           Run a single task from the configuration file
@@ -153,6 +164,45 @@ Options:
   -h, --help             Print help
 ```
 
+
+### Generate: Create a runtasktic configuration file like xargs or parallel
+
+```
+Generate config file from custom inputs.
+
+Takes an input file (stdin) and will process all lines to generate a runtasktic configuration.
+
+Usage: runtasktic generate [OPTIONS] [COMMAND]...
+
+Arguments:
+  [COMMAND]...
+          Command to add in your configuration file. You can use simple substitution using {} to use the full input line or {1}, {2} to match parts (separated by space)
+
+Options:
+      --base <BASE>
+          Base for the configuration, defaulted to global configuration
+
+  -c, --concurrency <CONCURRENCY>
+          Concurrency to set in configuration file
+          
+          [default: 1]
+
+      --on-failure <ON_FAILURE>
+          On failure to set in configuration file
+          
+          [default: continue]
+          [possible values: continue, exit]
+
+      --id <ID>
+          How to create task ids, defaulted to task index You can use sed-like substitution to generate the task id, captured group will use `$` instead of `\`, e.g. `s/(.*)/$1/`. You can choose your own separator, for example use | instead of / when you want to math URLs, e.g. `s|http://.*/(.*)|$1|` Sed options `i` and `g` are also available You can use simple substitution using {} to use the full input line or {1}, {2} to match parts (separated by space)
+
+  -o, --output <OUTPUT>
+          Where to store the new configuration, default on stdout
+
+  -h, --help
+          Print help (see a summary with '-h')
+```
+
 ### Dot: Create a graph using graphviz of your configuration file
 
 ```
@@ -180,7 +230,7 @@ Generate completion script for your shell
 Usage: runtasktic completion <COMMAND>
 
 Commands:
-  bash    Generates a .bash completion file for the Bourne Again SHell (BASH). Save the output in `/etc/bash_completion.d/runtasktic` or `~/.local/share/bash-completion/completions/runtasktic`
+  bash    Generates a .bash completion file for the Bourne Again SHell (BASH). Save the output in `/etc/bash_completion.d/runtasktic` or `~/.local/share/bash-completion/completions/runtasktic` or set `. <($HOME/.cargo/bin/runtasktic completion bash)` in your ~/.bash_aliases
   fish    Generates a .fish completion file for the Friendly Interactive SHell (fish)
   zsh     Generates a completion file for the Z SHell (ZSH)
   elvish  Generates a completion file for Elvish
@@ -198,7 +248,7 @@ Self update of the binary
 Usage: runtasktic update [OPTIONS]
 
 Options:
-      --github  Update binary using github binary. Unsafe operation since runtasktic needs a specific version of libc
+      --github  Update binary using prebuild github binary. Unsafe operation since runtasktic needs a specific version of libc
   -h, --help    Print help
 ```
 
